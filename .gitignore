@@ -1,6 +1,8 @@
 # Visual Studio 2015 user specific files
 .vs/
 
+#test assets that are to big to be pushed and dont need to be pusht
+Content/Art/tempAsset/car.uasset
 # Compiled Object files
 *.slo
 *.lo
