@@ -24,6 +24,7 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent * PlayerInputComponent) override;
 private:
 
+	void Tick(float DeltaTime);
 	//Movement
 	void Accelerate(float value);
 	void Decelerate(float value);
