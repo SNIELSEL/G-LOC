@@ -4,123 +4,226 @@
 #include "MainCar.h"
 #include "GameFrameWork/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
-#include "ChaosVehicleMovementComponent.h"
 #include "DrawDebugHelpers.h"
+#include "InputMappingContext.h"
+#include "EnhancedInputSubsystems.h"
+#include "EnhancedInputComponent.h"
 
 AMainCar::AMainCar()
 {
+	CarMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CarMesh"));
 	SpringArmC = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
-	SpringArmC->SetupAttachment(RootComponent);
+	CameraC = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
+
+    CarMesh->SetLinearDamping(3.0f);
+
+	RootComponent = CarMesh;
+	CarMesh->SetEnableGravity(true);
+	CarMesh->SetSimulatePhysics(true);
+
+	SpringArmC->SetupAttachment(CarMesh);
 	SpringArmC->TargetArmLength = 600;
 	SpringArmC->SetRelativeLocation(FVector(0, 0, 140));
 	SpringArmC->SetRelativeRotation(FRotator(-10, 0, 0));
 	SpringArmC->bUsePawnControlRotation = true;
-	CameraC = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
 	CameraC->SetupAttachment(SpringArmC);
-	GetMesh()->SetEnableGravity(false);
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 
-	PlayerInputComponent->BindAxis(FName("MoveForward"), this, &AMainCar::Accelerate);
-	PlayerInputComponent->BindAxis(FName("MoveBackward"), this, &AMainCar::Decelerate);
-	PlayerInputComponent->BindAxis(FName("MoveLR"), this, &AMainCar::MoveHorizontal);
-	PlayerInputComponent->BindAxis(FName("LookUD"), this, &AMainCar::LookVertical);
-	PlayerInputComponent->BindAxis(FName("LookLR"), this, &AMainCar::LookHorizontal);
+	if (APlayerController* PlayerController = Cast<APlayerController>(Controller))
+	{
+		if (UEnhancedInputLocalPlayerSubsystem* subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(PlayerController->GetLocalPlayer())) 
+		{
+			subsystem->AddMappingContext(InputMapping, 0);
+		}
+	}
 
-	PlayerInputComponent->BindAction(FName("Brake"), EInputEvent::IE_Pressed, this, &AMainCar::BrakePressed);
-	PlayerInputComponent->BindAction(FName("Brake"), EInputEvent::IE_Released, this, &AMainCar::BrakeReleased);
+	if (UEnhancedInputComponent* Input = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) 
+	{
+
+        Input->BindAction(MoveForwards, ETriggerEvent::Triggered, this, &AMainCar::Accelerate);
+        Input->BindAction(MoveForwards, ETriggerEvent::Completed, this, &AMainCar::StopAccelerate);
+
+        Input->BindAction(MoveBackwards, ETriggerEvent::Triggered, this, &AMainCar::Decelerate);
+        Input->BindAction(MoveBackwards, ETriggerEvent::Completed, this, &AMainCar::StopDecelerate);
+
+        Input->BindAction(HorizontalMovement, ETriggerEvent::Triggered, this, &AMainCar::MoveHorizontal);
+        Input->BindAction(HorizontalMovement, ETriggerEvent::Completed, this, &AMainCar::StopSteering);
+		Input->BindAction(PressBrake, ETriggerEvent::Triggered, this, &AMainCar::BrakePressed);
+		Input->BindAction(PressBrake, ETriggerEvent::Completed, this, &AMainCar::BrakeReleased);
+
+		PlayerInputComponent->BindAxis(FName("LookUD"), this, &AMainCar::LookVertical);
+		PlayerInputComponent->BindAxis(FName("LookLR"), this, &AMainCar::LookHorizontal);
+	}
 }
 
 void AMainCar::Tick(float DeltaTime)
 {
-	Super::Tick(DeltaTime);
+    Super::Tick(DeltaTime);
 
-	FVector actorLocation = GetActorLocation();
-	FVector End = actorLocation - FVector(0, 0, 1000);
+    FVector hoverStartLocation = GetActorLocation() + FVector(0, 0, 150);
+    FVector traceStart = hoverStartLocation;
+    FVector traceEnd = hoverStartLocation - FVector(0, 0, 1000);
 
-	FHitResult Hit;
-	FCollisionQueryParams Params;
-	Params.AddIgnoredActor(this);
+    FHitResult Hit;
+    FCollisionQueryParams Params;
+    Params.AddIgnoredActor(this);
 
-	if (GetWorld()->LineTraceSingleByChannel(Hit, actorLocation, End, ECC_Visibility, Params))
-	{
-		float DesiredHoverHeight = 4.f;
-		FVector TargetLocation = GetActorLocation();
-		TargetLocation.Z = Hit.ImpactPoint.Z + DesiredHoverHeight;
+    FCollisionObjectQueryParams ObjectQueryParams;
+    ObjectQueryParams.AddObjectTypesToQuery(ECC_WorldStatic);
 
-		//move gameobject smoothly to new location like a lerp
-		FVector NewLocation = FMath::VInterpTo(GetActorLocation(), TargetLocation, DeltaTime, 5.f);
-		SetActorLocation(NewLocation, false, nullptr, ETeleportType::TeleportPhysics);
+    if (GetWorld()->LineTraceSingleByObjectType(Hit, traceStart, traceEnd, ObjectQueryParams, Params))
+    {
+        float currentHeight = hoverStartLocation.Z - Hit.ImpactPoint.Z;
+        float heightError = DesiredHoverHeight - currentHeight;
+        float upwardForce = heightError * HoverForceCoefficient;
+        float verticalVelocity = CarMesh->GetComponentVelocity().Z;
+        upwardForce -= verticalVelocity * HoverDamping;
+        CarMesh->AddForce(FVector(0, 0, upwardForce), NAME_None, true);
+    }
 
-	}
-	DrawDebugLine(GetWorld(), actorLocation, End, FColor::Green, false, 2.0f, 0, 1.0f);
+    //Movement
+    if (ThrottleInput > 0.f)
+    {
+        FVector forwardForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
+        CarMesh->AddForce(forwardForce, NAME_None, true);
+    }
+    else if (ThrottleInput < 0.f)
+    {
+        FVector reverseForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
+        CarMesh->AddForce(reverseForce, NAME_None, true);
+    }
+    
+    //steering
+    if (FMath::Abs(SteeringInput) > 0.1f)
+    {
+        FVector torque = GetActorUpVector() * SteeringInput * SteeringTorqueCoefficient;
+        CarMesh->AddTorqueInDegrees(torque, NAME_None, true);
+    }
 
-	//front raycast Info
-	FVector LocalForwardOffset(250, 0, 0);
-	FVector WorldForwardOffset = GetActorRotation().RotateVector(LocalForwardOffset);
-	FVector actorFrontLocation = GetActorLocation() + WorldForwardOffset;
-	FVector FrontEnd = actorFrontLocation - FVector(0, 0, 1000);
-	FHitResult FrontHit;
+    if (bBraking)
+    {
+        FVector currentVelocity = CarMesh->GetComponentVelocity();
+        const float BrakeForceCoefficient = 2000.0f;
+        FVector brakeForce = -currentVelocity * BrakeForceCoefficient;
+        CarMesh->AddForce(brakeForce, NAME_None, true);
+    }
 
-	//back raycast Info
-	FVector LocalBackwardOffset(-200, 0, 0);
-	FVector WorldBackwardOffset = GetActorRotation().RotateVector(LocalBackwardOffset);
-	FVector actorBackLocation = GetActorLocation() + WorldBackwardOffset;
-	FVector BackEnd = actorBackLocation - FVector(0, 0, 1000);
-	FHitResult BackHit;
+    FVector LocalForwardOffset(200, 0, 250);
+    FVector WorldForwardOffset = GetActorRotation().RotateVector(LocalForwardOffset);
+    FVector actorFrontLocation = GetActorLocation() + WorldForwardOffset;
+    FVector FrontEnd = actorFrontLocation - FVector(0, 0, 1000);
+    FHitResult FrontHit;
 
-	//if front and back hit
-	if (GetWorld()->LineTraceSingleByChannel(BackHit, actorBackLocation, BackEnd, ECC_Visibility, Params) && GetWorld()->LineTraceSingleByChannel(FrontHit, actorFrontLocation, FrontEnd, ECC_Visibility, Params))
-	{
-		double deltaX = FrontHit.ImpactPoint.X - BackHit.ImpactPoint.X;
-		double deltaY = FrontHit.ImpactPoint.X - BackHit.ImpactPoint.Y;
+    FVector LocalBackwardOffset(-200, 0, 250);
+    FVector WorldBackwardOffset = GetActorRotation().RotateVector(LocalBackwardOffset);
+    FVector actorBackLocation = GetActorLocation() + WorldBackwardOffset;
+    FVector BackEnd = actorBackLocation - FVector(0, 0, 1000);
+    FHitResult BackHit;
 
-		double angleRadians = std::atan2(deltaY, deltaX);
-		double angleDegrees = angleRadians * (180.0 / PI);
+    Params = FCollisionQueryParams();
+    Params.AddIgnoredActor(this);
 
-		if (angleDegrees < 0) {
-			angleDegrees += 360;
-		}
-		else
-		{
-			FRotator TargetRotation = GetActorRotation();
-			TargetRotation.Pitch = angleDegrees;
+    if (GetWorld()->LineTraceSingleByChannel(BackHit, actorBackLocation, BackEnd, ECC_Visibility, Params) &&
+        GetWorld()->LineTraceSingleByChannel(FrontHit, actorFrontLocation, FrontEnd, ECC_Visibility, Params))
+    {
+        double deltaX = FrontHit.ImpactPoint.X - BackHit.ImpactPoint.X;
+        double deltaY = FrontHit.ImpactPoint.Y - BackHit.ImpactPoint.Y;
+        double deltaZ = FrontHit.ImpactPoint.Z - BackHit.ImpactPoint.Z;
 
-			//move gameobject smoothly to new location like a lerp
-			FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 5.f);
-			SetActorRotation(NewRotation);
+        double horizontalDistance = std::sqrt(deltaX * deltaX + deltaY * deltaY);
+        double angleRadians = std::atan2(deltaZ, horizontalDistance);
+        double angleDegrees = angleRadians * (180.0 / PI);
 
-		}
+        FRotator TargetRotation = GetActorRotation();
+        TargetRotation.Pitch = angleDegrees;
 
-		UE_LOG(LogTemp, Log, TEXT("slope in degrees: %f"), angleDegrees);
-		//UE_LOG(LogTemp, Log, TEXT("Front Z coordinate: %f and Back Z coordinate: %f"), FrontHit.ImpactPoint.Z, BackHit.ImpactPoint.Z);
-	}
-	DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
-	DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+        FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 5.f);
+        SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
+    }
+
+    FVector LocalLeftOffset(200, -100, 250);
+    FVector WorldLeftOffset = GetActorRotation().RotateVector(LocalLeftOffset);
+    FVector actorLeftLocation = GetActorLocation() + WorldLeftOffset;
+    FVector LeftEnd = actorLeftLocation - FVector(0, 0, 1000);
+    FHitResult LeftHit;
+
+    FVector LocalRightOffset(200, 100, 250);
+    FVector WorldRightOffset = GetActorRotation().RotateVector(LocalRightOffset);
+    FVector actorRightLocation = GetActorLocation() + WorldRightOffset;
+    FVector RightEnd = actorRightLocation - FVector(0, 0, 1000);
+    FHitResult RightHit;
+
+    if (GetWorld()->LineTraceSingleByChannel(LeftHit, actorLeftLocation, LeftEnd, ECC_Visibility, Params) &&
+        GetWorld()->LineTraceSingleByChannel(RightHit, actorRightLocation, RightEnd, ECC_Visibility, Params))
+    {
+        double deltaZ = LeftHit.ImpactPoint.Z - RightHit.ImpactPoint.Z;
+        double horizontalDistance = FVector::Dist2D(LeftHit.ImpactPoint, RightHit.ImpactPoint);
+        double rollRadians = FMath::Atan2(deltaZ, horizontalDistance);
+        double rollDegrees = FMath::RadiansToDegrees(rollRadians);
+
+        FRotator CurrentRotation = GetActorRotation();
+        FRotator TargetRotation = CurrentRotation;
+        TargetRotation.Roll = rollDegrees;
+
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.f);
+        SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
+    }
+
+    //DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+
+    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Green, false, 0.1f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
 }
 
-void AMainCar::Accelerate(float value)
+
+void AMainCar::Accelerate(const FInputActionValue& Value)
 {
-	GetVehicleMovementComponent()->SetThrottleInput(value);
+    float inputValue = Value.Get<float>();
+    ThrottleInput = FMath::Clamp(inputValue, 0.0f, 1.0f);
 }
-void AMainCar::Decelerate(float value)
+
+void AMainCar::StopAccelerate(const FInputActionValue& Value)
 {
-	GetVehicleMovementComponent()->SetBrakeInput(value);
+    ThrottleInput = 0.0f;
 }
-void AMainCar::MoveHorizontal(float value)
+
+void AMainCar::Decelerate(const FInputActionValue& Value)
 {
-	GetVehicleMovementComponent()->SetSteeringInput(value);
-}	
+    float inputValue = Value.Get<float>();
+    ThrottleInput = FMath::Clamp(inputValue, -1.0f, 0.0f);
+    UE_LOG(LogTemp, Warning, TEXT("Input Value: %f"), inputValue);
+}
+
+void AMainCar::StopDecelerate(const FInputActionValue& Value)
+{
+    ThrottleInput = 0.0f;
+}
+
+void AMainCar::MoveHorizontal(const FInputActionValue& Value)
+{
+	float inputValue = Value.Get<float>();
+	SteeringInput = FMath::Clamp(inputValue, -1.0f, 1.0f);
+}
+
+void AMainCar::StopSteering(const FInputActionValue& Value)
+{
+    SteeringInput = 0.0f;
+}
+
 void AMainCar::BrakePressed()
 {
-	GetVehicleMovementComponent()->SetHandbrakeInput(true);
+	bBraking = true;
 }
+
 void AMainCar::BrakeReleased()
 {
-	GetVehicleMovementComponent()->SetHandbrakeInput(false);
+	bBraking = false;
 }
 
 //look
