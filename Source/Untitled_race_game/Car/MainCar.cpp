@@ -11,6 +11,14 @@
 
 AMainCar::AMainCar()
 {
+    ConstructorHelpers::FObjectFinder<UStaticMesh> StaticMesh_Asset(TEXT("StaticMesh'/Game/Art/Car/BallCar.BallCar'"));
+    ConstructorHelpers::FObjectFinder<UInputMappingContext> InputContext_Asset(TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> PressBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> ReleaseBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> W_Asset(TEXT("InputAction'/Game/Scripts/Input/W.W'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> S_Asset(TEXT("InputAction'/Game/Scripts/Input/S.S'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> AD_Asset(TEXT("InputAction'/Game/Scripts/Input/AD.AD'"));
+
 	CarMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CarMesh"));
 	SpringArmC = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	CameraC = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
@@ -20,13 +28,23 @@ AMainCar::AMainCar()
 	RootComponent = CarMesh;
 	CarMesh->SetEnableGravity(true);
 	CarMesh->SetSimulatePhysics(true);
+    CarMesh->SetStaticMesh(StaticMesh_Asset.Object);
 
 	SpringArmC->SetupAttachment(CarMesh);
 	SpringArmC->TargetArmLength = 600;
 	SpringArmC->SetRelativeLocation(FVector(0, 0, 140));
 	SpringArmC->SetRelativeRotation(FRotator(-10, 0, 0));
-	SpringArmC->bUsePawnControlRotation = true;
+	SpringArmC->bUsePawnControlRotation = false;
+
 	CameraC->SetupAttachment(SpringArmC);
+    CameraC->SetFieldOfView(120);
+
+    InputMapping = InputContext_Asset.Object;
+    PressBrake = PressBrake_Asset.Object;
+    ReleaseBrake = ReleaseBrake_Asset.Object;
+    MoveForwards = W_Asset.Object;
+    MoveBackwards = S_Asset.Object;
+    HorizontalMovement = AD_Asset.Object;
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)

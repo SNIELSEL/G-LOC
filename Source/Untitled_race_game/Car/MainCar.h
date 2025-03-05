@@ -16,11 +16,11 @@ public:
 
 	AMainCar();
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 		class UStaticMeshComponent* CarMesh;
-	UPROPERTY(BluePrintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		class USpringArmComponent* SpringArmC;
-	UPROPERTY(BluePrintReadWrite, EditAnywhere)
+	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 		class UCameraComponent* CameraC;
 
 protected:
@@ -46,15 +46,15 @@ protected:
 private:
 
 	//variables
-	const float DesiredHoverHeight = 210.0f;
-	const float HoverForceCoefficient = 700.0f;
+	const float DesiredHoverHeight = 275.0f;
+	const float HoverForceCoefficient = 900.0f;
 	const float HoverDamping = 110.0f;
 
 	const float EngineForceCoefficient = 7000.0f;
-	const float SteeringTorqueCoefficient = 100.0f;
+	const float SteeringTorqueCoefficient = 90.0f;
 
 	float AccelerationForce = 10000.f;
-	float SteeringTorque = 500000.f;
+	float SteeringTorque = 200000.f;
 	float BrakeForceMultiplier = 5000.f;
 	float ThrottleInput;
 	float SteeringInput;
