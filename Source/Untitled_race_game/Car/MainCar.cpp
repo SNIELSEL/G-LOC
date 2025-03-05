@@ -191,10 +191,10 @@ void AMainCar::Tick(float DeltaTime)
         SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
     }
 
-    //DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Green, false, 2.0f, 0, 1.0f);
-    //DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
 
-    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Green, false, 0.1f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
     //DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
     //DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
 }

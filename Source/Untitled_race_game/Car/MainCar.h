@@ -46,15 +46,15 @@ protected:
 private:
 
 	//variables
-	const float DesiredHoverHeight = 275.0f;
-	const float HoverForceCoefficient = 900.0f;
+	const float DesiredHoverHeight = 265.0f;
+	const float HoverForceCoefficient = 800.0f;
 	const float HoverDamping = 110.0f;
 
 	const float EngineForceCoefficient = 7000.0f;
 	const float SteeringTorqueCoefficient = 90.0f;
 
 	float AccelerationForce = 10000.f;
-	float SteeringTorque = 200000.f;
+	float SteeringTorque = 600000.f;
 	float BrakeForceMultiplier = 5000.f;
 	float ThrottleInput;
 	float SteeringInput;
