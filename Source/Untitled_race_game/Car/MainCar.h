@@ -43,24 +43,41 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
 	class UInputAction* HorizontalMovement;
+
+	//empty/cheap objects for start and end point for raycast/line trace so that i can use those and use their attachment feature to make my raycast automatically rotate
+	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
+		USceneComponent* LineTraceParent;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* LeftLineTraceStart;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* RightLineTraceStart;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* FrontLineTraceStart;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* BackLineTraceStart;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* CenterLineTraceStart;
 private:
 
 	//variables
-	const float DesiredHoverHeight = 265.0f;
-	const float HoverForceCoefficient = 800.0f;
-	const float HoverDamping = 110.0f;
+	float LinetraceStartHeight = 50;
+	float LinetraceEndHeight = -900;
 
-	const float EngineForceCoefficient = 7000.0f;
-	const float SteeringTorqueCoefficient = 90.0f;
+	float DesiredHoverHeight = 220.0f;
+	float HoverForceCoefficient = 800.0f;
+	float HoverDamping = 90.0f;
 
-	float AccelerationForce = 10000.f;
-	float SteeringTorque = 600000.f;
-	float BrakeForceMultiplier = 5000.f;
+	float EngineForceCoefficient = 14000.0f;
+	float SteeringTorqueCoefficient = 75.0f;
+
+	float SteeringTorque = 2000000000.f;
+	float BrakeForceCoefficient = 90.0f;
+	float BrakeForceMultiplier = 10000000;
 	float ThrottleInput;
 	float SteeringInput;
 	bool bBraking;
 
-	void Tick(float DeltaTime);
+	void Tick(float DeltaTime) override;
 	//Movement
 	void Accelerate(const FInputActionValue& Value);
 	void StopAccelerate(const FInputActionValue& Value);

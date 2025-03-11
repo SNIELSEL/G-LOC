@@ -22,7 +22,12 @@ AMainCar::AMainCar()
 	CarMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CarMesh"));
 	SpringArmC = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	CameraC = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
-
+    LineTraceParent = CreateDefaultSubobject<USceneComponent>(TEXT("LinetraceParent"));
+    LeftLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("LeftStartScene"));
+    RightLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("RightStartScene"));
+    FrontLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("FrontStartScene"));
+    BackLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("BackStartScene"));
+    CenterLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("CenterStartScene"));
     CarMesh->SetLinearDamping(3.0f);
 
 	RootComponent = CarMesh;
@@ -45,6 +50,22 @@ AMainCar::AMainCar()
     MoveForwards = W_Asset.Object;
     MoveBackwards = S_Asset.Object;
     HorizontalMovement = AD_Asset.Object;
+
+    LineTraceParent->SetupAttachment(CarMesh);
+    LeftLineTraceStart->SetupAttachment(LineTraceParent);
+    LeftLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, -100, LinetraceStartHeight));
+    
+    RightLineTraceStart->SetupAttachment(LineTraceParent);
+    RightLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, 100, LinetraceStartHeight));
+
+    FrontLineTraceStart->SetupAttachment(LineTraceParent);
+    FrontLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, 0, LinetraceStartHeight));
+
+    BackLineTraceStart->SetupAttachment(LineTraceParent);
+    BackLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(-200, 0, LinetraceStartHeight));
+
+    CenterLineTraceStart->SetupAttachment(LineTraceParent);
+    CenterLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -82,9 +103,8 @@ void AMainCar::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    FVector hoverStartLocation = GetActorLocation() + FVector(0, 0, 150);
-    FVector traceStart = hoverStartLocation;
-    FVector traceEnd = hoverStartLocation - FVector(0, 0, 1000);
+    FVector traceStart = CenterLineTraceStart->GetComponentLocation();
+    FVector traceEnd = CenterLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
 
     FHitResult Hit;
     FCollisionQueryParams Params;
@@ -95,7 +115,7 @@ void AMainCar::Tick(float DeltaTime)
 
     if (GetWorld()->LineTraceSingleByObjectType(Hit, traceStart, traceEnd, ObjectQueryParams, Params))
     {
-        float currentHeight = hoverStartLocation.Z - Hit.ImpactPoint.Z;
+        float currentHeight = CenterLineTraceStart->GetComponentLocation().Z - Hit.ImpactPoint.Z;
         float heightError = DesiredHoverHeight - currentHeight;
         float upwardForce = heightError * HoverForceCoefficient;
         float verticalVelocity = CarMesh->GetComponentVelocity().Z;
@@ -125,21 +145,16 @@ void AMainCar::Tick(float DeltaTime)
     if (bBraking)
     {
         FVector currentVelocity = CarMesh->GetComponentVelocity();
-        const float BrakeForceCoefficient = 2000.0f;
         FVector brakeForce = -currentVelocity * BrakeForceCoefficient;
         CarMesh->AddForce(brakeForce, NAME_None, true);
     }
 
-    FVector LocalForwardOffset(200, 0, 250);
-    FVector WorldForwardOffset = GetActorRotation().RotateVector(LocalForwardOffset);
-    FVector actorFrontLocation = GetActorLocation() + WorldForwardOffset;
-    FVector FrontEnd = actorFrontLocation - FVector(0, 0, 1000);
+    FVector actorFrontLocation = FrontLineTraceStart->GetComponentLocation();
+    FVector FrontEnd = FrontLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult FrontHit;
 
-    FVector LocalBackwardOffset(-200, 0, 250);
-    FVector WorldBackwardOffset = GetActorRotation().RotateVector(LocalBackwardOffset);
-    FVector actorBackLocation = GetActorLocation() + WorldBackwardOffset;
-    FVector BackEnd = actorBackLocation - FVector(0, 0, 1000);
+    FVector actorBackLocation = BackLineTraceStart->GetComponentLocation();
+    FVector BackEnd = BackLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult BackHit;
 
     Params = FCollisionQueryParams();
@@ -163,16 +178,12 @@ void AMainCar::Tick(float DeltaTime)
         SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
     }
 
-    FVector LocalLeftOffset(200, -100, 250);
-    FVector WorldLeftOffset = GetActorRotation().RotateVector(LocalLeftOffset);
-    FVector actorLeftLocation = GetActorLocation() + WorldLeftOffset;
-    FVector LeftEnd = actorLeftLocation - FVector(0, 0, 1000);
+    FVector actorLeftLocation = LeftLineTraceStart->GetComponentLocation();
+    FVector LeftEnd = LeftLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult LeftHit;
 
-    FVector LocalRightOffset(200, 100, 250);
-    FVector WorldRightOffset = GetActorRotation().RotateVector(LocalRightOffset);
-    FVector actorRightLocation = GetActorLocation() + WorldRightOffset;
-    FVector RightEnd = actorRightLocation - FVector(0, 0, 1000);
+    FVector actorRightLocation = RightLineTraceStart->GetComponentLocation();
+    FVector RightEnd = RightLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult RightHit;
 
     if (GetWorld()->LineTraceSingleByChannel(LeftHit, actorLeftLocation, LeftEnd, ECC_Visibility, Params) &&
@@ -192,11 +203,12 @@ void AMainCar::Tick(float DeltaTime)
     }
 
     DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
-    //DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
 
-    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
-    //DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
-    //DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
+    
+    DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
 }
 
 
