@@ -37,6 +37,10 @@
 		{
 			"Name": "ImpostorBaker",
 			"Enabled": true
+		},
+		{
+			"Name": "PCG",
+			"Enabled": true
 		}
 	]
 }
