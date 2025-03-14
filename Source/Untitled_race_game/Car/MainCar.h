@@ -72,16 +72,17 @@ private:
 	float LinetraceStartHeight = 50;
 	float LinetraceEndHeight = -900;
 
-	float DesiredHoverHeight = 220.0f;
-	float HoverForceCoefficient = 800.0f;
+	float DesiredHoverHeight = 135.0f;
+	float HoverForceCoefficient = 900.0f;
 	float HoverDamping = 80.0f;
 	float RotateSpeed = 15.0f;
 
-	float EngineForceCoefficient = 14000.0f;
-	float SteeringTorqueCoefficient = 100.0f;
+	float EngineForceCoefficient = 9500.0f;
+	float SteeringTorqueCoefficient = 85.0f;
 
+	float MaxSteeringAngularVelocity = 45.0f;
 	float SteeringTorque = 20.f;
-	float BrakingTorqueConstant = 120.0f;
+	float BrakingTorqueConstant = 130.0f;
 	float BrakeForceCoefficient = 90.0f;
 	float BrakeForceMultiplier = 10000000;
 	float ThrottleInput;

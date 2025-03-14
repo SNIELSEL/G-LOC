@@ -210,11 +210,11 @@ void AMainCar::Tick(float DeltaTime)
 
     //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
 
-    DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
-    DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
 
-    DrawDebugLine(GetWorld(), leftWallTraceStart, leftWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
-    DrawDebugLine(GetWorld(), rightWallTraceStart, rightWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), leftWallTraceStart, leftWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), rightWallTraceStart, rightWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
 
     //Movement
     if (ThrottleInput > 0.f)
@@ -229,14 +229,21 @@ void AMainCar::Tick(float DeltaTime)
     }
     
     //steering
+    FVector currentAngularVelocity = CarMesh->GetPhysicsAngularVelocityInDegrees();
     if (FMath::Abs(SteeringInput) > 0.1f)
     {
-        FVector torque = GetActorUpVector() * SteeringInput * SteeringTorqueCoefficient;
-        CarMesh->AddTorqueInDegrees(torque, NAME_None, true);
+        if (FMath::Abs(currentAngularVelocity.Z) < MaxSteeringAngularVelocity) 
+        {
+            FVector torque = GetActorUpVector() * SteeringInput * SteeringTorqueCoefficient;
+            CarMesh->AddTorqueInDegrees(torque, NAME_None, true);
+            if (GEngine)
+            {
+                GEngine->AddOnScreenDebugMessage(-1, 15.0f, FColor::Yellow, FString::Printf(TEXT("Torque: %s"), *currentAngularVelocity.ToString()));
+            }
+        }
     }
-    else
+    else if (FMath::Abs(SteeringInput) < 0.1f)
     {
-        FVector currentAngularVelocity = CarMesh->GetPhysicsAngularVelocityInDegrees();
         if (currentAngularVelocity.Size() > 0.1f)
         {
             FVector brakingTorque = -currentAngularVelocity.GetSafeNormal() * BrakingTorqueConstant;
