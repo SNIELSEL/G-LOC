@@ -23,11 +23,15 @@ AMainCar::AMainCar()
 	SpringArmC = CreateDefaultSubobject<USpringArmComponent>(TEXT("SpringArm"));
 	CameraC = CreateDefaultSubobject<UCameraComponent>(TEXT("Camera"));
     LineTraceParent = CreateDefaultSubobject<USceneComponent>(TEXT("LinetraceParent"));
-    LeftLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("LeftStartScene"));
-    RightLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("RightStartScene"));
-    FrontLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("FrontStartScene"));
-    BackLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("BackStartScene"));
-    CenterLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("CenterStartScene"));
+    LeftLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("LeftStartScene"));
+    RightLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("RightStartScene"));
+    FrontLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("FrontStartScene"));
+    BackLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("BackStartScene"));
+    CenterLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("CenterStartScene"));
+    LeftWallLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("LeftWallLineTraceStart"));
+    LeftWallLineTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("LeftWallLineTraceEnd"));
+    RightWallLineTraceStart = CreateDefaultSubobject<USceneComponent>(TEXT("RightWallLineTraceStart"));
+    RightWallLineTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("RightWallLineTraceEnd"));
     CarMesh->SetLinearDamping(3.0f);
 
 	RootComponent = CarMesh;
@@ -52,20 +56,33 @@ AMainCar::AMainCar()
     HorizontalMovement = AD_Asset.Object;
 
     LineTraceParent->SetupAttachment(CarMesh);
-    LeftLineTraceStart->SetupAttachment(LineTraceParent);
-    LeftLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, -100, LinetraceStartHeight));
+    LeftLineTrace->SetupAttachment(LineTraceParent);
+    LeftLineTrace->SetWorldLocation(GetActorLocation() + FVector(200, -100, LinetraceStartHeight));
     
-    RightLineTraceStart->SetupAttachment(LineTraceParent);
-    RightLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, 100, LinetraceStartHeight));
+    RightLineTrace->SetupAttachment(LineTraceParent);
+    RightLineTrace->SetWorldLocation(GetActorLocation() + FVector(200, 100, LinetraceStartHeight));
 
-    FrontLineTraceStart->SetupAttachment(LineTraceParent);
-    FrontLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(200, 0, LinetraceStartHeight));
+    FrontLineTrace->SetupAttachment(LineTraceParent);
+    FrontLineTrace->SetWorldLocation(GetActorLocation() + FVector(200, 0, LinetraceStartHeight));
 
-    BackLineTraceStart->SetupAttachment(LineTraceParent);
-    BackLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(-200, 0, LinetraceStartHeight));
+    BackLineTrace->SetupAttachment(LineTraceParent);
+    BackLineTrace->SetWorldLocation(GetActorLocation() + FVector(-200, 0, LinetraceStartHeight));
 
-    CenterLineTraceStart->SetupAttachment(LineTraceParent);
-    CenterLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
+    CenterLineTrace->SetupAttachment(LineTraceParent);
+    CenterLineTrace->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
+
+    LeftWallLineTraceStart->SetupAttachment(LineTraceParent);
+    LeftWallLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(0, -100, LinetraceStartHeight));
+
+    LeftWallLineTraceEnd->SetupAttachment(LineTraceParent);
+    LeftWallLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, -LinetraceEndHeight, LinetraceStartHeight));
+
+    RightWallLineTraceStart->SetupAttachment(LineTraceParent);
+    RightWallLineTraceStart->SetWorldLocation(GetActorLocation() + FVector(0, 100, LinetraceStartHeight));
+
+    RightWallLineTraceEnd->SetupAttachment(LineTraceParent);
+    RightWallLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, LinetraceEndHeight, LinetraceStartHeight));
+
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -103,10 +120,10 @@ void AMainCar::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    FVector traceStart = CenterLineTraceStart->GetComponentLocation();
-    FVector traceEnd = CenterLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
-
+    FVector traceStart = CenterLineTrace->GetComponentLocation();
+    FVector traceEnd = CenterLineTrace->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult Hit;
+
     FCollisionQueryParams Params;
     Params.AddIgnoredActor(this);
 
@@ -115,7 +132,7 @@ void AMainCar::Tick(float DeltaTime)
 
     if (GetWorld()->LineTraceSingleByObjectType(Hit, traceStart, traceEnd, ObjectQueryParams, Params))
     {
-        float currentHeight = CenterLineTraceStart->GetComponentLocation().Z - Hit.ImpactPoint.Z;
+        float currentHeight = CenterLineTrace->GetComponentLocation().Z - Hit.ImpactPoint.Z;
         float heightError = DesiredHoverHeight - currentHeight;
         float upwardForce = heightError * HoverForceCoefficient;
         float verticalVelocity = CarMesh->GetComponentVelocity().Z;
@@ -123,38 +140,24 @@ void AMainCar::Tick(float DeltaTime)
         CarMesh->AddForce(FVector(0, 0, upwardForce), NAME_None, true);
     }
 
-    //Movement
-    if (ThrottleInput > 0.f)
+    FVector leftWallTraceStart = LeftWallLineTraceStart->GetComponentLocation();
+    FVector leftWallTraceEnd = LeftWallLineTraceEnd->GetComponentLocation();
+
+    FVector rightWallTraceStart = RightWallLineTraceStart->GetComponentLocation();
+    FVector rightWallTraceEnd = RightWallLineTraceEnd->GetComponentLocation();
+    FHitResult LeftRightWallHit;
+
+    if (GetWorld()->LineTraceSingleByObjectType(Hit, leftWallTraceStart, leftWallTraceEnd, ObjectQueryParams, Params))
     {
-        FVector forwardForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
-        CarMesh->AddForce(forwardForce, NAME_None, true);
-    }
-    else if (ThrottleInput < 0.f)
-    {
-        FVector reverseForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
-        CarMesh->AddForce(reverseForce, NAME_None, true);
-    }
-    
-    //steering
-    if (FMath::Abs(SteeringInput) > 0.1f)
-    {
-        FVector torque = GetActorUpVector() * SteeringInput * SteeringTorqueCoefficient;
-        CarMesh->AddTorqueInDegrees(torque, NAME_None, true);
+
     }
 
-    if (bBraking)
-    {
-        FVector currentVelocity = CarMesh->GetComponentVelocity();
-        FVector brakeForce = -currentVelocity * BrakeForceCoefficient;
-        CarMesh->AddForce(brakeForce, NAME_None, true);
-    }
-
-    FVector actorFrontLocation = FrontLineTraceStart->GetComponentLocation();
-    FVector FrontEnd = FrontLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
+    FVector actorFrontLocation = FrontLineTrace->GetComponentLocation();
+    FVector FrontEnd = FrontLineTrace->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult FrontHit;
 
-    FVector actorBackLocation = BackLineTraceStart->GetComponentLocation();
-    FVector BackEnd = BackLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
+    FVector actorBackLocation = BackLineTrace->GetComponentLocation();
+    FVector BackEnd = BackLineTrace->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult BackHit;
 
     Params = FCollisionQueryParams();
@@ -174,16 +177,16 @@ void AMainCar::Tick(float DeltaTime)
         FRotator TargetRotation = GetActorRotation();
         TargetRotation.Pitch = angleDegrees;
 
-        FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime, 5.f);
+        FRotator NewRotation = FMath::RInterpTo(GetActorRotation(), TargetRotation, DeltaTime,RotateSpeed);
         SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
     }
 
-    FVector actorLeftLocation = LeftLineTraceStart->GetComponentLocation();
-    FVector LeftEnd = LeftLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
+    FVector actorLeftLocation = LeftLineTrace->GetComponentLocation();
+    FVector LeftEnd = LeftLineTrace->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult LeftHit;
 
-    FVector actorRightLocation = RightLineTraceStart->GetComponentLocation();
-    FVector RightEnd = RightLineTraceStart->GetComponentLocation() - FVector(0, 0, 1000);
+    FVector actorRightLocation = RightLineTrace->GetComponentLocation();
+    FVector RightEnd = RightLineTrace->GetComponentLocation() - FVector(0, 0, 1000);
     FHitResult RightHit;
 
     if (GetWorld()->LineTraceSingleByChannel(LeftHit, actorLeftLocation, LeftEnd, ECC_Visibility, Params) &&
@@ -198,17 +201,55 @@ void AMainCar::Tick(float DeltaTime)
         FRotator TargetRotation = CurrentRotation;
         TargetRotation.Roll = rollDegrees;
 
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, 5.f);
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaTime, RotateSpeed);
         SetActorRotation(NewRotation, ETeleportType::TeleportPhysics);
     }
 
-    DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
-    DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorLeftLocation, LeftEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), actorRightLocation, RightEnd, FColor::Emerald, false, 2.0f, 0, 1.0f);
 
-    DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
-    
+    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
+
     DrawDebugLine(GetWorld(), actorBackLocation, BackEnd, FColor::Green, false, 2.0f, 0, 1.0f);
     DrawDebugLine(GetWorld(), actorFrontLocation, FrontEnd, FColor::Green, false, 2.0f, 0, 1.0f);
+
+    DrawDebugLine(GetWorld(), leftWallTraceStart, leftWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), rightWallTraceStart, rightWallTraceEnd, FColor::Red, false, 2.0f, 0, 1.0f);
+
+    //Movement
+    if (ThrottleInput > 0.f)
+    {
+        FVector forwardForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
+        CarMesh->AddForce(forwardForce, NAME_None, true);
+    }
+    else if (ThrottleInput < 0.f)
+    {
+        FVector reverseForce = GetActorForwardVector() * ThrottleInput * EngineForceCoefficient;
+        CarMesh->AddForce(reverseForce, NAME_None, true);
+    }
+    
+    //steering
+    if (FMath::Abs(SteeringInput) > 0.1f)
+    {
+        FVector torque = GetActorUpVector() * SteeringInput * SteeringTorqueCoefficient;
+        CarMesh->AddTorqueInDegrees(torque, NAME_None, true);
+    }
+    else
+    {
+        FVector currentAngularVelocity = CarMesh->GetPhysicsAngularVelocityInDegrees();
+        if (currentAngularVelocity.Size() > 0.1f)
+        {
+            FVector brakingTorque = -currentAngularVelocity.GetSafeNormal() * BrakingTorqueConstant;
+            CarMesh->AddTorqueInDegrees(brakingTorque, NAME_None, true);
+        }
+    }
+
+    if (bBraking)
+    {
+        FVector currentVelocity = CarMesh->GetComponentVelocity();
+        FVector brakeForce = -currentVelocity * BrakeForceCoefficient;
+        CarMesh->AddForce(brakeForce, NAME_None, true);
+    }
 }
 
 

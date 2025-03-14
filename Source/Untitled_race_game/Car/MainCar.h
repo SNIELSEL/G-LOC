@@ -48,15 +48,24 @@ protected:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 		USceneComponent* LineTraceParent;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* LeftLineTraceStart;
+		USceneComponent* LeftLineTrace;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* RightLineTraceStart;
+		USceneComponent* RightLineTrace;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* FrontLineTraceStart;
+		USceneComponent* FrontLineTrace;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* BackLineTraceStart;
+		USceneComponent* BackLineTrace;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* CenterLineTraceStart;
+		USceneComponent* CenterLineTrace;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* LeftWallLineTraceStart;
+
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* LeftWallLineTraceEnd;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* RightWallLineTraceStart;
+	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
+		USceneComponent* RightWallLineTraceEnd;
 private:
 
 	//variables
@@ -65,12 +74,14 @@ private:
 
 	float DesiredHoverHeight = 220.0f;
 	float HoverForceCoefficient = 800.0f;
-	float HoverDamping = 90.0f;
+	float HoverDamping = 80.0f;
+	float RotateSpeed = 15.0f;
 
 	float EngineForceCoefficient = 14000.0f;
-	float SteeringTorqueCoefficient = 75.0f;
+	float SteeringTorqueCoefficient = 100.0f;
 
-	float SteeringTorque = 2000000000.f;
+	float SteeringTorque = 20.f;
+	float BrakingTorqueConstant = 120.0f;
 	float BrakeForceCoefficient = 90.0f;
 	float BrakeForceMultiplier = 10000000;
 	float ThrottleInput;
