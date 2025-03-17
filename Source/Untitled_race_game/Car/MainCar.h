@@ -11,20 +11,18 @@ UCLASS()
 class UNTITLED_RACE_GAME_API AMainCar : public APawn
 {
 	GENERATED_BODY()
-	
+
 public:
 
 	AMainCar();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
-		class UStaticMeshComponent* CarMesh;
+	class UStaticMeshComponent* CarMesh;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-		class USpringArmComponent* SpringArmC;
-	UPROPERTY(BlueprintReadWrite, EditAnywhere)
-		class UCameraComponent* CameraC;
+	class UCameraComponent* CameraC;
 
 protected:
-	virtual void SetupPlayerInputComponent(UInputComponent * PlayerInputComponent) override;
+	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
 	class UInputMappingContext* InputMapping;
@@ -42,7 +40,10 @@ protected:
 	class UInputAction* MoveBackwards;
 
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
-	class UInputAction* HorizontalMovement;
+	class UInputAction* SteerLeftAction;
+
+	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
+	class UInputAction* SteerRightAction;
 
 	//empty/cheap objects for start and end point for raycast/line trace so that i can use those and use their attachment feature to make my raycast automatically rotate
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
@@ -69,34 +70,65 @@ protected:
 private:
 
 	//variables
-	float LinetraceStartHeight = 50;
+	float LinetraceStartHeight = 15;
 	float LinetraceEndHeight = -900;
 
-	float DesiredHoverHeight = 135.0f;
-	float HoverForceCoefficient = 900.0f;
-	float HoverDamping = 80.0f;
-	float RotateSpeed = 15.0f;
+	//hover
+	float DesiredHoverHeight = 190;
+	float HoverForceCoefficient = 700;
+	float HoverDamping = 110;
 
-	float EngineForceCoefficient = 9500.0f;
-	float SteeringTorqueCoefficient = 85.0f;
+	FVector CurrentHoverForce;
+	FVector HoverPreviousForce;
 
-	float MaxSteeringAngularVelocity = 45.0f;
-	float SteeringTorque = 20.f;
-	float BrakingTorqueConstant = 130.0f;
-	float BrakeForceCoefficient = 90.0f;
+	//engine
+	float EngineForceCoefficient = 14000;
+
+	//rotation
+	float RotateSpeed = 8;
+	float SteeringTorqueCoefficient = 150;
+	float MaxSteeringAngularVelocity = 70;
+
+	float RollInterpSpeed = 8;
+	float MaxRollAngle = 50;
+
+	//brakes
+	float BrakingTorqueConstant = 130;
+	float BrakeForceCoefficient = 90;
 	float BrakeForceMultiplier = 10000000;
+
+	//bools
+	bool steerLeft = false;
+	bool steerRight = false;
+
+	//input
 	float ThrottleInput;
 	float SteeringInput;
 	bool bBraking;
 
+	//camera
+	float CameraFollowDistance = 300;
+	float CameraHeight = 190;
+	float CameraInterpSpeedLocation = 20;
+	float CameraInterpSpeedRotation = 8;
+
+	FVector LastCameraPosition;
+	FRotator LastCameraRotation;
+	FVector DesiredCameraPosition;
+	FRotator DesiredCameraLookAt;
+
+	//void
+	virtual void BeginPlay() override;
 	void Tick(float DeltaTime) override;
 	//Movement
 	void Accelerate(const FInputActionValue& Value);
 	void StopAccelerate(const FInputActionValue& Value);
 	void Decelerate(const FInputActionValue& Value);
 	void StopDecelerate(const FInputActionValue& Value);
-	void MoveHorizontal(const FInputActionValue& Value);
-	void StopSteering(const FInputActionValue& Value);
+	void SteerLeftPressed();
+	void SteerLeftReleased();
+	void SteerRightPressed();
+	void SteerRightReleased();
 	void BrakePressed();
 	void BrakeReleased();
 
