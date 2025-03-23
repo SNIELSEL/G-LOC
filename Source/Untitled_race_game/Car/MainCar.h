@@ -1,10 +1,11 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
 #pragma once
 
 #include "CoreMinimal.h"
 #include "GameFramework/Pawn.h"
 #include "InputActionValue.h"
+#include "Blueprint/UserWidget.h"
+#include "../UI/IngameUI.h"
+
 #include "MainCar.generated.h"
 
 UCLASS()
@@ -17,6 +18,10 @@ public:
 	AMainCar();
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
+	class UStaticMeshComponent* FlameTrailMeshL;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
+	class UStaticMeshComponent* FlameTrailMeshR;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class UStaticMeshComponent* CarMesh;
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	class UCameraComponent* CameraC;
@@ -24,6 +29,14 @@ public:
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
+	//HUD
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "UI")
+	TSubclassOf<class UIngameUI> PlayerHUDClass;
+
+	UPROPERTY()
+	class UIngameUI* PlayerHUD;
+
+	//Input
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
 	class UInputMappingContext* InputMapping;
 
@@ -49,51 +62,31 @@ protected:
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 		USceneComponent* LineTraceParent;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* LeftLineTrace;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* RightLineTrace;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* FrontLineTrace;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* BackLineTrace;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
 		USceneComponent* CenterLineTrace;
 	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* LeftWallLineTraceStart;
-
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* LeftWallLineTraceEnd;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* RightWallLineTraceStart;
-	UPROPERTY(VisibleDefaultsOnly, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true", AdvancedDisplay))
-		USceneComponent* RightWallLineTraceEnd;
+		USceneComponent* CenterLineTraceEnd;
 private:
 
 	//variables
-	float LinetraceStartHeight = 15;
+	float LinetraceStartHeight = 0;
 	float LinetraceEndHeight = -900;
 
 	//hover
-	float DesiredHoverHeight = 190;
-	float HoverForceCoefficient = 700;
+	float DesiredHoverHeight = 320;
+	float HoverForceCoefficient = 2;
 	float HoverDamping = 110;
 
-	FVector CurrentHoverForce;
-	FVector HoverPreviousForce;
-
 	//engine
-	float EngineForceCoefficient = 14000;
+	float EngineForceCoefficient = 18000;
 
 	//rotation
-	float RotateSpeed = 8;
-	float SteeringTorqueCoefficient = 150;
+	float SteeringTorqueCoefficient = 7;
 	float MaxSteeringAngularVelocity = 70;
 
-	float RollInterpSpeed = 8;
-	float MaxRollAngle = 50;
-
+	float AlignmentTorqueCoefficient = 1500;
+	float DampingCoefficient = 30.0f;
 	//brakes
-	float BrakingTorqueConstant = 130;
+	float BrakingTorqueConstant = 180;
 	float BrakeForceCoefficient = 90;
 	float BrakeForceMultiplier = 10000000;
 
@@ -108,9 +101,9 @@ private:
 
 	//camera
 	float CameraFollowDistance = 300;
-	float CameraHeight = 190;
-	float CameraInterpSpeedLocation = 20;
-	float CameraInterpSpeedRotation = 8;
+	float CameraHeight = 150;
+	float CameraInterpSpeedLocation = 35;
+	float CameraInterpSpeedRotation = 4;
 
 	FVector LastCameraPosition;
 	FRotator LastCameraRotation;
@@ -119,7 +112,10 @@ private:
 
 	//void
 	virtual void BeginPlay() override;
+	virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;
+
 	void Tick(float DeltaTime) override;
+	void CameraMovement(float DeltaTime);
 	//Movement
 	void Accelerate(const FInputActionValue& Value);
 	void StopAccelerate(const FInputActionValue& Value);
