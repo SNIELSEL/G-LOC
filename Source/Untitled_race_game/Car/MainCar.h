@@ -77,12 +77,12 @@ private:
 	float LinetraceEndHeight = -900;
 
 	//hover
-	float DesiredHoverHeight = 320;
+	float DesiredHoverHeight = 220;
 	float HoverForceCoefficient = 2;
 	float HoverDamping = 110;
 
 	//engine
-	float EngineForceCoefficient = 18000;
+	float EngineForceCoefficient = 22000;
 
 	float CurrentThrottle = 0;
 	float TargetThrottle = 0;
@@ -91,7 +91,7 @@ private:
 	void UpdateThrottle(float DeltaTime);
 	//rotation
 	float SteeringTorqueCoefficient = 7;
-	float MaxSteeringAngularVelocity = 70;
+	float MaxSteeringAngularVelocity = 100;
 
 	float AlignmentTorqueCoefficient = 1500;
 	float DampingCoefficient = 30.0f;
@@ -109,10 +109,11 @@ private:
 	bool bBraking;
 
 	//camera
-	float CameraFollowDistance = 300;
-	float CameraHeight = 150;
-	float CameraInterpSpeedLocation = 35;
+	float CameraFollowDistance = 200;
+	float CameraHeight = 100;
+	float CameraInterpSpeedLocation = 50;
 	float CameraInterpSpeedRotation = 4;
+	float CameraPitchOffset = -2;
 
 	//FOV
 	float BaseFOV = 100;
