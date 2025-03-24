@@ -9,10 +9,8 @@ class UNTITLED_RACE_GAME_API UIngameUI : public UUserWidget
 {
 	GENERATED_BODY()
 public:
-	/** Update HUD with current health. */
-	void SetHealth(float CurrentHealth, float MaxHealth);
+	void SetBoost(float CurrentBoost, float MaxBoost);
 
-	/** Widget to use to display current health. */
 	UPROPERTY(EditAnywhere, meta = (BindWidget))
-	class UProgressBar* HealthBar;
+	class UProgressBar* BoostBar;
 };

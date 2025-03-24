@@ -55,7 +55,7 @@ AMainCar::AMainCar()
         FlameTrailMeshR->SetMaterial(0,VanskaFlameMat_Asset.Object);
     }
 
-    CameraC->SetFieldOfView(100);
+    CameraC->SetFieldOfView(110);
     CameraC->SetRelativeLocation(FVector(-600, 0, 140));
     CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
 
@@ -78,6 +78,9 @@ AMainCar::AMainCar()
 
     CenterLineTraceEnd->SetupAttachment(LineTraceParent);
     CenterLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, 0, -1000));
+
+    CurrentBoost = 100;
+    MaxBoost = 100;
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -161,7 +164,11 @@ void AMainCar::BeginPlay()
         PlayerHUD = CreateWidget<UIngameUI>(GetWorld(), PlayerHUDClass);
         check(PlayerHUD);
         PlayerHUD->AddToPlayerScreen();
-        PlayerHUD->SetHealth(23, 100);
+
+        if (PlayerHUD && PlayerHUD->IsInViewport())
+        {
+            PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
+        }
     }
 }
 
@@ -176,11 +183,56 @@ void AMainCar::EndPlay(const EEndPlayReason::Type EndPlayReason)
     Super::EndPlay(EndPlayReason);
 }
 
-void AMainCar::Tick(float DeltaTime)
+void AMainCar::UpdateThrottle(float DeltaTime)
+{
+    CurrentThrottle = FMath::FInterpTo(CurrentThrottle, TargetThrottle, DeltaTime, AccelerationSpeed);
 
+    FVector CurrentVelocity = CarMesh->GetComponentVelocity();
+    FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), GetActorUpVector()).GetSafeNormal();
+    if (ForwardVector.IsNearlyZero())
+        ForwardVector = GetActorForwardVector();
+
+    float ForwardSpeed = FVector::DotProduct(CurrentVelocity, ForwardVector);
+
+    FVector AppliedForce = FVector::ZeroVector;
+
+    if (FMath::Abs(CurrentThrottle) > KINDA_SMALL_NUMBER)
+    {
+        if (CurrentThrottle > 0.f)
+        {
+            AppliedForce = ForwardVector * CurrentThrottle * EngineForceCoefficient;
+        }
+        else if (CurrentThrottle < 0.f)
+        {
+            if (ForwardSpeed > 10.f)
+            {
+                AppliedForce = -ForwardVector * BrakeForceCoefficient * FMath::Abs(CurrentThrottle);
+            }
+            else
+            {
+                AppliedForce = ForwardVector * CurrentThrottle * (EngineForceCoefficient * 0.8f);
+            }
+        }
+
+        if (!AppliedForce.ContainsNaN() && !AppliedForce.IsNearlyZero())
+            CarMesh->AddForce(AppliedForce, NAME_None, true);
+    }
+
+    CarMesh->SetLinearDamping(CurrentThrottle < 0.f ? 8.0f : 3.0f);
+}
+
+void AMainCar::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
+
+    //checks if there even is a car mesh and if its simulating physics if not then dont execute void to prevent engine crash
+    if (!CarMesh || !CarMesh->IsSimulatingPhysics())
+        return;
+
+    PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
+
     CameraMovement(DeltaTime);
+    UpdateThrottle(DeltaTime);
 
     FVector traceStart = CenterLineTrace->GetComponentLocation();
     FVector traceEnd = CenterLineTraceEnd->GetComponentLocation();
@@ -209,39 +261,6 @@ void AMainCar::Tick(float DeltaTime)
     }
 
     DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
-
-    if (ThrottleInput != 0.f)
-    {
-        FVector CurrentVelocity = CarMesh->GetComponentVelocity();
-        FVector ForwardOnSurface = FVector::VectorPlaneProject(GetActorForwardVector(), GetActorUpVector()).GetSafeNormal();
-
-        if (ForwardOnSurface.SizeSquared() < KINDA_SMALL_NUMBER)
-        {
-            ForwardOnSurface = GetActorForwardVector();
-        }
-
-        float VelocityDot = FVector::DotProduct(CurrentVelocity, ForwardOnSurface);
-
-        if (ThrottleInput < 0.f && VelocityDot > 0)
-        {
-            FVector DampingForce = -CurrentVelocity * 2.0f;
-            CarMesh->AddForce(DampingForce, NAME_None, true);
-        }
-        else
-        {
-            FVector DriveForce = ForwardOnSurface * ThrottleInput * EngineForceCoefficient;
-            CarMesh->AddForce(DriveForce, NAME_None, true);
-        }
-    }
-
-    if (ThrottleInput < 0.f)
-    {
-        CarMesh->SetLinearDamping(5.0f);
-    }
-    else
-    {
-        CarMesh->SetLinearDamping(3.0f);
-    }
 
     if (steerLeft && !steerRight)
     {
@@ -275,32 +294,44 @@ void AMainCar::Tick(float DeltaTime)
 
     if (bBraking)
     {
-        FVector currentVelocity = CarMesh->GetComponentVelocity();
-        FVector brakeForce = -currentVelocity * BrakeForceCoefficient;
-        CarMesh->AddForce(brakeForce, NAME_None, true);
+        FVector CurrentVelocity = CarMesh->GetComponentVelocity();
+        float CurrentSpeed = CurrentVelocity.Size();
+
+        if (CurrentSpeed > KINDA_SMALL_NUMBER)
+        {
+            FVector BrakeDirection = -CurrentVelocity.GetSafeNormal();
+
+            float BrakeStrength = FMath::Clamp(CurrentSpeed / 500.f, 0.f, 1.f);
+            FVector BrakeForce = BrakeDirection * BrakeForceCoefficient * BrakeStrength;
+
+            CarMesh->AddForce(BrakeForce, NAME_None, true);
+            CarMesh->SetLinearDamping(10.0f);
+        }
+    }
+    else
+    {
+        CarMesh->SetLinearDamping(CurrentThrottle < 0.f ? 8.0f : 3.0f);
     }
 }
 
 void AMainCar::Accelerate(const FInputActionValue& Value)
 {
-    float inputValue = Value.Get<float>();
-    ThrottleInput = FMath::Clamp(inputValue, 0.0f, 1.0f);
+    TargetThrottle = FMath::Clamp(Value.Get<float>(), 0.0f, 1.0f);
 }
 
 void AMainCar::StopAccelerate(const FInputActionValue& Value)
 {
-    ThrottleInput = 0.0f;
+    TargetThrottle = 0.0f;
 }
 
 void AMainCar::Decelerate(const FInputActionValue& Value)
 {
-    float inputValue = Value.Get<float>();
-    ThrottleInput = FMath::Clamp(inputValue, -1.0f, 0.0f);
+    TargetThrottle = FMath::Clamp(Value.Get<float>(), -1.0f, 0.0f);
 }
 
 void AMainCar::StopDecelerate(const FInputActionValue& Value)
 {
-    ThrottleInput = 0.0f;
+    TargetThrottle = 0.0f;
 }
 
 void AMainCar::SteerLeftPressed()

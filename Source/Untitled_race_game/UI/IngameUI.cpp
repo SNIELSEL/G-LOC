@@ -1,10 +1,10 @@
 #include "IngameUI.h"
 #include "Components/ProgressBar.h"
 
-void UIngameUI::SetHealth(float CurrentHealth, float MaxHealth)
+void UIngameUI::SetBoost(float CurrentBoost, float MaxBoost)
 {
-    if (HealthBar)
-    {
-        HealthBar->SetPercent(CurrentHealth / MaxHealth);
-    }
+    if (!BoostBar || MaxBoost <= KINDA_SMALL_NUMBER)
+        return;
+
+    BoostBar->SetPercent(CurrentBoost / MaxBoost);
 }

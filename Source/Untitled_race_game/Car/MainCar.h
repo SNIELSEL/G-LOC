@@ -17,6 +17,11 @@ public:
 
 	AMainCar();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float MaxBoost;
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
+	float CurrentBoost;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class UStaticMeshComponent* FlameTrailMeshL;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
@@ -79,6 +84,11 @@ private:
 	//engine
 	float EngineForceCoefficient = 18000;
 
+	float CurrentThrottle = 0;
+	float TargetThrottle = 0;
+	float AccelerationSpeed = 0.8f;
+
+	void UpdateThrottle(float DeltaTime);
 	//rotation
 	float SteeringTorqueCoefficient = 7;
 	float MaxSteeringAngularVelocity = 70;
@@ -87,8 +97,7 @@ private:
 	float DampingCoefficient = 30.0f;
 	//brakes
 	float BrakingTorqueConstant = 180;
-	float BrakeForceCoefficient = 90;
-	float BrakeForceMultiplier = 10000000;
+	float BrakeForceCoefficient = 0.5f;
 
 	//bools
 	bool steerLeft = false;
@@ -104,6 +113,12 @@ private:
 	float CameraHeight = 150;
 	float CameraInterpSpeedLocation = 35;
 	float CameraInterpSpeedRotation = 4;
+
+	//FOV
+	float BaseFOV = 100;
+	float MaxFOV = 140;
+	float MaxSpeedForFOV = 3000;
+	float FOVInterpSpeed = 4;
 
 	FVector LastCameraPosition;
 	FRotator LastCameraRotation;
