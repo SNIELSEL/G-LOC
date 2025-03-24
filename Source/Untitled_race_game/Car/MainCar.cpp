@@ -141,7 +141,6 @@ void AMainCar::CameraMovement(float DeltaTime)
     FVector ForwardProjected = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceNormal).GetSafeNormal();
     FRotator SurfaceAlignedRotation = FRotationMatrix::MakeFromXZ(ForwardProjected, SurfaceNormal).Rotator();
 
-    const float CameraPitchOffset = -5;
     SurfaceAlignedRotation.Pitch = FMath::ClampAngle(SurfaceAlignedRotation.Pitch + CameraPitchOffset, -80, 80);
 
     FRotator DesiredCameraRotation = FMath::RInterpTo(CameraC->GetComponentRotation(), SurfaceAlignedRotation, DeltaTime, CameraInterpSpeedRotation);
@@ -249,7 +248,7 @@ void AMainCar::Tick(float DeltaTime)
     {
         FVector DesiredPosition = Hit.ImpactPoint + Hit.ImpactNormal * DesiredHoverHeight;
 
-        FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, 8.0f);
+        FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, 10.0f);
         SetActorLocation(NewPosition);
 
         FRotator CurrentRotation = GetActorRotation();
