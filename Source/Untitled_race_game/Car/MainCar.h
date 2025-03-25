@@ -17,11 +17,6 @@ public:
 
 	AMainCar();
 
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float MaxBoost;
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Stats")
-	float CurrentBoost;
-
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class UStaticMeshComponent* FlameTrailMeshL;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
@@ -52,6 +47,9 @@ protected:
 	class UInputAction* ReleaseBrake;
 
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
+	class UInputAction* PressBoost;
+
+	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
 	class UInputAction* MoveForwards;
 
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
@@ -77,21 +75,31 @@ private:
 	float LinetraceEndHeight = -900;
 
 	//hover
-	float DesiredHoverHeight = 220;
+	float DesiredHoverHeight = 130;
 	float HoverForceCoefficient = 2;
 	float HoverDamping = 110;
 
+	float HoverInterpSpeed = 20;
+
 	//engine
-	float EngineForceCoefficient = 22000;
+	float EngineForceCoefficient = 19000;
+	float MaxSpeedForClamp = 4000;
 
 	float CurrentThrottle = 0;
 	float TargetThrottle = 0;
 	float AccelerationSpeed = 0.8f;
 
-	void UpdateThrottle(float DeltaTime);
+	//Boost
+	float MaxBoost;
+	float CurrentBoost;
+	float BoostForceCoefficient = 5000;
+	float BoostDrainRate = 32;
+	float BoostRechargeRate = 7.5f;
+	bool bIsBoosting;
+
 	//rotation
-	float SteeringTorqueCoefficient = 7;
-	float MaxSteeringAngularVelocity = 100;
+	float SteeringTorqueCoefficient = 9;
+	float MaxSteeringAngularVelocity = 120;
 
 	float AlignmentTorqueCoefficient = 1500;
 	float DampingCoefficient = 30.0f;
@@ -110,16 +118,20 @@ private:
 
 	//camera
 	float CameraFollowDistance = 200;
-	float CameraHeight = 100;
+	float CameraHeight = 110;
 	float CameraInterpSpeedLocation = 50;
 	float CameraInterpSpeedRotation = 4;
 	float CameraPitchOffset = -2;
 
 	//FOV
 	float BaseFOV = 100;
-	float MaxFOV = 140;
-	float MaxSpeedForFOV = 3000;
+	float MaxFOV = 140; 
 	float FOVInterpSpeed = 4;
+
+	//FlameMesh
+	float MinFlameScale = 0.01f;
+	float MaxFlameScale = 1.0f;
+	float ScaleInterpSpeed = 4;
 
 	FVector LastCameraPosition;
 	FRotator LastCameraRotation;
@@ -132,7 +144,12 @@ private:
 
 	void Tick(float DeltaTime) override;
 	void CameraMovement(float DeltaTime);
+	void UpdateThrottle(float DeltaTime);
+
 	//Movement
+	void Boosting(const FInputActionValue& Value);
+	void StopBoosting(const FInputActionValue& Value);
+	void UpdateBoost(float DeltaTime);
 	void Accelerate(const FInputActionValue& Value);
 	void StopAccelerate(const FInputActionValue& Value);
 	void Decelerate(const FInputActionValue& Value);

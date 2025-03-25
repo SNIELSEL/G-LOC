@@ -18,6 +18,7 @@ AMainCar::AMainCar()
     ConstructorHelpers::FClassFinder<UIngameUI> UI_Asset(TEXT("WidgetBlueprint'/Game/Scripts/UI/IngameUI.IngameUI_C'"));
     ConstructorHelpers::FObjectFinder<UInputAction> PressBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
     ConstructorHelpers::FObjectFinder<UInputAction> ReleaseBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
+    ConstructorHelpers::FObjectFinder<UInputAction> Boost_Asset(TEXT("InputAction'/Game/Scripts/Input/Boost.Boost'"));
     ConstructorHelpers::FObjectFinder<UInputAction> W_Asset(TEXT("InputAction'/Game/Scripts/Input/W.W'"));
     ConstructorHelpers::FObjectFinder<UInputAction> S_Asset(TEXT("InputAction'/Game/Scripts/Input/S.S'"));
     ConstructorHelpers::FObjectFinder<UInputAction> A_Asset(TEXT("InputAction'/Game/Scripts/Input/A.A'"));
@@ -34,6 +35,7 @@ AMainCar::AMainCar()
     CarMesh->SetLinearDamping(3.0f);
     CarMesh->SetAngularDamping(5.0f);
     CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
+    CarMesh->SetAllUseCCD(true);
 
     RootComponent = CarMesh;
     CarMesh->SetEnableGravity(false);
@@ -55,7 +57,7 @@ AMainCar::AMainCar()
         FlameTrailMeshR->SetMaterial(0,VanskaFlameMat_Asset.Object);
     }
 
-    CameraC->SetFieldOfView(110);
+    CameraC->SetFieldOfView(100);
     CameraC->SetRelativeLocation(FVector(-600, 0, 140));
     CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
 
@@ -66,6 +68,7 @@ AMainCar::AMainCar()
     InputMapping = InputContext_Asset.Object;
     PressBrake = PressBrake_Asset.Object;
     ReleaseBrake = ReleaseBrake_Asset.Object;
+    PressBoost = Boost_Asset.Object;
     MoveForwards = W_Asset.Object;
     MoveBackwards = S_Asset.Object;
     SteerLeftAction = A_Asset.Object;
@@ -97,6 +100,8 @@ void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 
 	if (UEnhancedInputComponent* Input = CastChecked<UEnhancedInputComponent>(PlayerInputComponent)) 
 	{
+        Input->BindAction(PressBoost, ETriggerEvent::Triggered, this, &AMainCar::Boosting);
+        Input->BindAction(PressBoost, ETriggerEvent::Completed, this, &AMainCar::StopBoosting);
 
         Input->BindAction(MoveForwards, ETriggerEvent::Triggered, this, &AMainCar::Accelerate);
         Input->BindAction(MoveForwards, ETriggerEvent::Completed, this, &AMainCar::StopAccelerate);
@@ -152,6 +157,14 @@ void AMainCar::CameraMovement(float DeltaTime)
     FVector InterpolatedCameraPosition = FMath::VInterpTo(CameraC->GetComponentLocation(), DesiredCameraWorldPos, DeltaTime, CameraInterpSpeedLocation);
 
     CameraC->SetWorldLocation(InterpolatedCameraPosition);
+
+    FVector CurrentVelocity = CarMesh->GetComponentVelocity();
+    float CurrentSpeed = CurrentVelocity.Size();
+    float SpeedRatio = FMath::Clamp(CurrentSpeed / MaxSpeedForClamp, 0.0f, 1.0f);
+    float DesiredFOV = FMath::Lerp(BaseFOV, MaxFOV, SpeedRatio);
+    float CurrentFOV = CameraC->FieldOfView;
+    float NewFOV = FMath::FInterpTo(CurrentFOV, DesiredFOV, DeltaTime, FOVInterpSpeed);
+    CameraC->SetFieldOfView(NewFOV);
 }
 
 void AMainCar::BeginPlay()
@@ -218,6 +231,19 @@ void AMainCar::UpdateThrottle(float DeltaTime)
     }
 
     CarMesh->SetLinearDamping(CurrentThrottle < 0.f ? 8.0f : 3.0f);
+
+    //set flame mesh scale based on speed
+    float CurrentSpeed = CurrentVelocity.Size();
+    float SpeedRatio = FMath::Clamp(CurrentSpeed / MaxSpeedForClamp, 0.0f, 1.0f);
+    float DesiredScale = FMath::Lerp(MinFlameScale, MaxFlameScale, SpeedRatio);
+
+    float CurrentXScaleL = FlameTrailMeshL->GetRelativeScale3D().X;
+    float NewXScaleL = FMath::FInterpTo(CurrentXScaleL, DesiredScale, DeltaTime, ScaleInterpSpeed);
+    FlameTrailMeshL->SetRelativeScale3D(FVector(NewXScaleL, 1.0f, 1.0f));
+
+    float CurrentXScaleR = FlameTrailMeshR->GetRelativeScale3D().X;
+    float NewXScaleR = FMath::FInterpTo(CurrentXScaleR, DesiredScale, DeltaTime, ScaleInterpSpeed);
+    FlameTrailMeshR->SetRelativeScale3D(FVector(NewXScaleR, 1.0f, 1.0f));
 }
 
 void AMainCar::Tick(float DeltaTime)
@@ -225,11 +251,12 @@ void AMainCar::Tick(float DeltaTime)
     Super::Tick(DeltaTime);
 
     //checks if there even is a car mesh and if its simulating physics if not then dont execute void to prevent engine crash
-    if (!CarMesh || !CarMesh->IsSimulatingPhysics())
+    if (!CarMesh || !CarMesh->IsSimulatingPhysics() || !FlameTrailMeshL || !FlameTrailMeshR)
+    {
         return;
+    }
 
-    PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
-
+    UpdateBoost(DeltaTime);
     CameraMovement(DeltaTime);
     UpdateThrottle(DeltaTime);
 
@@ -248,8 +275,8 @@ void AMainCar::Tick(float DeltaTime)
     {
         FVector DesiredPosition = Hit.ImpactPoint + Hit.ImpactNormal * DesiredHoverHeight;
 
-        FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, 10.0f);
-        SetActorLocation(NewPosition);
+        FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, HoverInterpSpeed);
+        SetActorLocation(NewPosition, true);
 
         FRotator CurrentRotation = GetActorRotation();
         FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), Hit.ImpactNormal).GetSafeNormal();
@@ -311,6 +338,47 @@ void AMainCar::Tick(float DeltaTime)
     {
         CarMesh->SetLinearDamping(CurrentThrottle < 0.f ? 8.0f : 3.0f);
     }
+}
+
+void AMainCar::Boosting(const FInputActionValue& Value)
+{
+    bIsBoosting = (CurrentBoost > 0);
+    MaxFOV = 150;
+}
+
+void AMainCar::StopBoosting(const FInputActionValue& Value)
+{
+    bIsBoosting = false;
+    MaxFOV = 140;
+}
+
+void AMainCar::UpdateBoost(float DeltaTime)
+{
+    if (bIsBoosting && CurrentBoost > 0 && TargetThrottle > 0)
+    {
+        FVector BoostForce = GetActorForwardVector() * BoostForceCoefficient;
+        CarMesh->AddForce(BoostForce, NAME_None, true);
+
+        CurrentBoost -= BoostDrainRate * DeltaTime;
+        CurrentBoost = FMath::Clamp(CurrentBoost, 0.0f, MaxBoost);
+
+        if (CurrentBoost <= 0.0f)
+        {
+            bIsBoosting = false;
+        }
+    }
+    else
+    {
+        CurrentBoost += BoostRechargeRate * DeltaTime;
+        CurrentBoost = FMath::Clamp(CurrentBoost, 0.0f, MaxBoost);
+    }
+
+    if (PlayerHUD && PlayerHUD->IsInViewport())
+    {
+        PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
+    }
+
+    PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
 }
 
 void AMainCar::Accelerate(const FInputActionValue& Value)
