@@ -18,40 +18,6 @@ AMainCar::AMainCar()
     LineTraceParent = CreateDefaultSubobject<USceneComponent>(TEXT("LinetraceParent"));
     CenterLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("CenterStartScene"));
     CenterLineTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("CenterEndLineTrace"));
-
-    CarMesh->SetLinearDamping(3.0f);
-    CarMesh->SetAngularDamping(5.0f);
-    CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
-    CarMesh->SetAllUseCCD(true);
-    PrimaryActorTick.bCanEverTick = true;
-
-    RootComponent = CarMesh;
-    CarMesh->SetEnableGravity(false);
-    CarMesh->SetSimulatePhysics(true);
-
-    FlameTrailMeshL->SetupAttachment(CarMesh);
-    FlameTrailMeshR->SetupAttachment(CarMesh);
-
-    FlameTrailMeshL->SetRelativeLocation(FVector(-39.4f, 0, 0));
-    FlameTrailMeshL->SetRelativeScale3D(FVector(1, -1, 1));
-    FlameTrailMeshR->SetRelativeLocation(FVector(-39.4f, 0, 0));
-
-    CameraC->SetFieldOfView(100);
-    CameraC->SetRelativeLocation(FVector(-600, 0, 140));
-    CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
-
-    AutoPossessPlayer = EAutoReceiveInput::Player0;
-
-    LineTraceParent->SetupAttachment(CarMesh);
-
-    CenterLineTrace->SetupAttachment(LineTraceParent);
-    CenterLineTrace->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
-
-    CenterLineTraceEnd->SetupAttachment(LineTraceParent);
-    CenterLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, 0, -1000));
-
-    CurrentBoost = 100;
-    MaxBoost = 100;
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -139,6 +105,13 @@ void AMainCar::CameraMovement(float DeltaTime)
     {
         Super::BeginPlay();
 
+        RootComponent = CarMesh;
+
+        FlameTrailMeshL->SetupAttachment(CarMesh);
+        FlameTrailMeshR->SetupAttachment(CarMesh);
+
+        LineTraceParent->SetupAttachment(CarMesh);
+
         UStaticMesh* CannovaShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShip.CannovaShip'"));
         UStaticMesh* CannovaShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShipP2.CannovaShipP2'"));
         UStaticMesh* SchwalbeShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Schwalbe/SchwalbeShip.SchwalbeShip'"));
@@ -203,6 +176,34 @@ void AMainCar::CameraMovement(float DeltaTime)
         FlameMeshes.Add(YamazakiFlameMesh_Asset);
         FlameMeshes.Add(VanskaFlameMesh_Asset);
         FlameMeshes.Add(VanskaFlameMesh_Asset);
+
+        CarMesh->SetLinearDamping(3.0f);
+        CarMesh->SetAngularDamping(5.0f);
+        CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
+        CarMesh->SetAllUseCCD(true);
+
+        CurrentBoost = 100;
+        MaxBoost = 100;
+        PrimaryActorTick.bCanEverTick = true;
+
+        CarMesh->SetEnableGravity(false);
+        CarMesh->SetSimulatePhysics(true);
+
+        FlameTrailMeshL->SetRelativeLocation(FVector(-39.4f, 0, 0));
+        FlameTrailMeshL->SetRelativeScale3D(FVector(1, -1, 1));
+        FlameTrailMeshR->SetRelativeLocation(FVector(-39.4f, 0, 0));
+
+        CameraC->SetFieldOfView(100);
+        CameraC->SetRelativeLocation(FVector(-600, 0, 140));
+        CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
+
+        AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+        CenterLineTrace->SetupAttachment(LineTraceParent);
+        CenterLineTrace->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
+
+        CenterLineTraceEnd->SetupAttachment(LineTraceParent);
+        CenterLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, 0, -1000));
 
         if (IsLocallyControlled() && PlayerHUDClass)
         {
