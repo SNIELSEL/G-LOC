@@ -21,8 +21,15 @@ public:
 	class UStaticMeshComponent* FlameTrailMeshL;
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class UStaticMeshComponent* FlameTrailMeshR;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Materials")
+	class UTexture2D* BoostBarFilled;
+	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Materials")
+	class UTexture2D* BoostBarEmpty;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadWrite, Category = "Components")
 	class UStaticMeshComponent* CarMesh;
+
 	UPROPERTY(BlueprintReadWrite, EditAnywhere)
 	class UCameraComponent* CameraC;
 
@@ -93,9 +100,10 @@ private:
 	float MaxBoost;
 	float CurrentBoost;
 	float BoostForceCoefficient = 5000;
-	float BoostDrainRate = 32;
+	float BoostDrainRate = 35;
 	float BoostRechargeRate = 7.5f;
 	bool bIsBoosting;
+	bool bIsRecharging;
 
 	//rotation
 	float SteeringTorqueCoefficient = 9;
@@ -117,9 +125,9 @@ private:
 	bool bBraking;
 
 	//camera
-	float CameraFollowDistance = 200;
+	float CameraFollowDistance = 300;
 	float CameraHeight = 110;
-	float CameraInterpSpeedLocation = 50;
+	float CameraInterpSpeedLocation = 200;
 	float CameraInterpSpeedRotation = 4;
 	float CameraPitchOffset = -2;
 
@@ -130,8 +138,18 @@ private:
 
 	//FlameMesh
 	float MinFlameScale = 0.01f;
-	float MaxFlameScale = 1.0f;
+	float MaxFlameScale = 1;
 	float ScaleInterpSpeed = 4;
+
+	//mesh switch
+	TArray<UStaticMesh*> CarMeshes;
+	TArray<UStaticMesh*> FlameMeshes;
+
+	int32 CurrentIndex = 0;
+
+	//timer
+	float CurrentLaptimeFloat = 0;
+	bool bIsTimerRunning = true;
 
 	FVector LastCameraPosition;
 	FRotator LastCameraRotation;
@@ -145,6 +163,7 @@ private:
 	void Tick(float DeltaTime) override;
 	void CameraMovement(float DeltaTime);
 	void UpdateThrottle(float DeltaTime);
+	FText GetFormattedTime() const;
 
 	//Movement
 	void Boosting(const FInputActionValue& Value);

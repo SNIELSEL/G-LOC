@@ -11,19 +11,6 @@
 
 AMainCar::AMainCar()
 {
-    ConstructorHelpers::FObjectFinder<UStaticMesh> VanskaCarMesh_Asset(TEXT("StaticMesh'/Game/Art/Car/Vanska/VanskaShip.VanskaShip'"));
-    ConstructorHelpers::FObjectFinder<UStaticMesh> VanskaFlameMesh_Asset(TEXT("StaticMesh'/Game/Art/Particles/VanskaShipFlames__4_.VanskaShipFlames__4_'"));
-    ConstructorHelpers::FObjectFinder<UMaterial> VanskaFlameMat_Asset(TEXT("Material'/Game/Art/Particles/VanskaFlame.VanskaFlame'"));
-    ConstructorHelpers::FObjectFinder<UInputMappingContext> InputContext_Asset(TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
-    ConstructorHelpers::FClassFinder<UIngameUI> UI_Asset(TEXT("WidgetBlueprint'/Game/Scripts/UI/IngameUI.IngameUI_C'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> PressBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> ReleaseBrake_Asset(TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> Boost_Asset(TEXT("InputAction'/Game/Scripts/Input/Boost.Boost'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> W_Asset(TEXT("InputAction'/Game/Scripts/Input/W.W'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> S_Asset(TEXT("InputAction'/Game/Scripts/Input/S.S'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> A_Asset(TEXT("InputAction'/Game/Scripts/Input/A.A'"));
-    ConstructorHelpers::FObjectFinder<UInputAction> D_Asset(TEXT("InputAction'/Game/Scripts/Input/D.D'"));
-
     CarMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("CarMesh"));
     FlameTrailMeshL = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlameTrailMeshL"));
     FlameTrailMeshR = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("FlameTrailMeshR"));
@@ -36,43 +23,24 @@ AMainCar::AMainCar()
     CarMesh->SetAngularDamping(5.0f);
     CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
     CarMesh->SetAllUseCCD(true);
+    PrimaryActorTick.bCanEverTick = true;
 
     RootComponent = CarMesh;
     CarMesh->SetEnableGravity(false);
     CarMesh->SetSimulatePhysics(true);
-    CarMesh->SetStaticMesh(VanskaCarMesh_Asset.Object);
 
     FlameTrailMeshL->SetupAttachment(CarMesh);
     FlameTrailMeshR->SetupAttachment(CarMesh);
 
-    FlameTrailMeshL->SetRelativeLocation(FVector(-5, -27, -1));
-    FlameTrailMeshR->SetRelativeLocation(FVector(-5, 0, -1));
-
-    FlameTrailMeshL->SetStaticMesh(VanskaFlameMesh_Asset.Object);
-    FlameTrailMeshR->SetStaticMesh(VanskaFlameMesh_Asset.Object);
-
-    if (VanskaCarMesh_Asset.Object.GetName() == "VanskaShip") 
-    {
-        FlameTrailMeshL->SetMaterial(0, VanskaFlameMat_Asset.Object);
-        FlameTrailMeshR->SetMaterial(0,VanskaFlameMat_Asset.Object);
-    }
+    FlameTrailMeshL->SetRelativeLocation(FVector(-39.4f, 0, 0));
+    FlameTrailMeshL->SetRelativeScale3D(FVector(1, -1, 1));
+    FlameTrailMeshR->SetRelativeLocation(FVector(-39.4f, 0, 0));
 
     CameraC->SetFieldOfView(100);
     CameraC->SetRelativeLocation(FVector(-600, 0, 140));
     CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
 
     AutoPossessPlayer = EAutoReceiveInput::Player0;
-
-    PlayerHUDClass = UI_Asset.Class;
-
-    InputMapping = InputContext_Asset.Object;
-    PressBrake = PressBrake_Asset.Object;
-    ReleaseBrake = ReleaseBrake_Asset.Object;
-    PressBoost = Boost_Asset.Object;
-    MoveForwards = W_Asset.Object;
-    MoveBackwards = S_Asset.Object;
-    SteerLeftAction = A_Asset.Object;
-    SteerRightAction = D_Asset.Object;
 
     LineTraceParent->SetupAttachment(CarMesh);
 
@@ -167,22 +135,87 @@ void AMainCar::CameraMovement(float DeltaTime)
     CameraC->SetFieldOfView(NewFOV);
 }
 
-void AMainCar::BeginPlay()
-{
-    Super::BeginPlay();
-
-    if (IsLocallyControlled() && PlayerHUDClass)
+    void AMainCar::BeginPlay()
     {
-        PlayerHUD = CreateWidget<UIngameUI>(GetWorld(), PlayerHUDClass);
-        check(PlayerHUD);
-        PlayerHUD->AddToPlayerScreen();
+        Super::BeginPlay();
 
-        if (PlayerHUD && PlayerHUD->IsInViewport())
+        UStaticMesh* CannovaShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShip.CannovaShip'"));
+        UStaticMesh* CannovaShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShipP2.CannovaShipP2'"));
+        UStaticMesh* SchwalbeShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Schwalbe/SchwalbeShip.SchwalbeShip'"));
+        UStaticMesh* SchwalbeShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Schwalbe/SchwalbeShipP2.SchwalbeShipP2'"));
+        UStaticMesh* YamazakiShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Yamazaki/YamazakiShip.YamazakiShip'"));
+        UStaticMesh* YamazakiShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Yamazaki/YamazakiShipP2.YamazakiShipP2'"));
+        UStaticMesh* VanskaShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Vanska/VanskaShip.VanskaShip'"));
+        UStaticMesh* VanskaShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Vanska/VanskaShipP2.VanskaShipP2'"));
+
+        UStaticMesh* VanskaFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/VanskaShipFlames.VanskaShipFlames'"));
+        UStaticMesh* CannovaFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/CannovaShipFlames.CannovaShipFlames'"));
+        UStaticMesh* SchwalbeFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/SchwalbeShipFlames.SchwalbeShipFlames'"));
+        UStaticMesh* YamazakiFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/YamazakiShipFlames.YamazakiShipFlames'"));
+
+        UInputMappingContext* InputContext_Asset = LoadObject<UInputMappingContext>(nullptr, TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
+        UInputAction* PressBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
+        UInputAction* ReleaseBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
+        UInputAction* Boost_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/Boost.Boost'"));
+        UInputAction* W_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/W.W'"));
+        UInputAction* S_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/S.S'"));
+        UInputAction* A_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/A.A'"));
+        UInputAction* D_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/D.D'"));
+
+
+        UTexture2D* emptyBoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBarEmpty.BoostBarEmpty'"));
+        UTexture2D* BoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBar.BoostBar'"));
+
+        TSubclassOf<UIngameUI> UI_Asset = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("WidgetBlueprint'/Game/Scripts/UI/IngameUI.IngameUI_C'"));
+
+        PlayerHUDClass = UI_Asset;
+
+        InputMapping = InputContext_Asset;
+        PressBrake = PressBrake_Asset;
+        ReleaseBrake = ReleaseBrake_Asset;
+        PressBoost = Boost_Asset;
+        MoveForwards = W_Asset;
+        MoveBackwards = S_Asset;
+        SteerLeftAction = A_Asset;
+        SteerRightAction = D_Asset;
+
+        BoostBarFilled = BoostBar_Asset;
+        BoostBarEmpty = emptyBoostBar_Asset;
+
+        FlameTrailMeshL->SetStaticMesh(VanskaFlameMesh_Asset);
+        FlameTrailMeshR->SetStaticMesh(VanskaFlameMesh_Asset);
+        CarMesh->SetStaticMesh(VanskaShipMesh1_Asset);
+
+        CarMeshes.Add(CannovaShipMesh1_Asset);
+        CarMeshes.Add(CannovaShipMesh1_Asset);
+        CarMeshes.Add(SchwalbeShipMesh1_Asset);
+        CarMeshes.Add(SchwalbeShipMesh1_Asset);
+        CarMeshes.Add(YamazakiShipMesh1_Asset);
+        CarMeshes.Add(YamazakiShipMesh2_Asset);
+        CarMeshes.Add(VanskaShipMesh1_Asset);
+        CarMeshes.Add(VanskaShipMesh2_Asset);
+
+        FlameMeshes.Add(CannovaFlameMesh_Asset);
+        FlameMeshes.Add(CannovaFlameMesh_Asset);
+        FlameMeshes.Add(SchwalbeFlameMesh_Asset);
+        FlameMeshes.Add(SchwalbeFlameMesh_Asset);
+        FlameMeshes.Add(YamazakiFlameMesh_Asset);
+        FlameMeshes.Add(YamazakiFlameMesh_Asset);
+        FlameMeshes.Add(VanskaFlameMesh_Asset);
+        FlameMeshes.Add(VanskaFlameMesh_Asset);
+
+        if (IsLocallyControlled() && PlayerHUDClass)
         {
-            PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
+            PlayerHUD = CreateWidget<UIngameUI>(GetWorld(), PlayerHUDClass);
+            check(PlayerHUD);
+            PlayerHUD->AddToPlayerScreen();
+
+            if (PlayerHUD && PlayerHUD->IsInViewport())
+            {
+                PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
+            }
         }
     }
-}
 
 void AMainCar::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
@@ -237,9 +270,22 @@ void AMainCar::UpdateThrottle(float DeltaTime)
     float SpeedRatio = FMath::Clamp(CurrentSpeed / MaxSpeedForClamp, 0.0f, 1.0f);
     float DesiredScale = FMath::Lerp(MinFlameScale, MaxFlameScale, SpeedRatio);
 
+    //setting the spedometer slider
+    float SpedometerSpeedRatio = FMath::Clamp(CurrentSpeed / (MaxSpeedForClamp * 2), 0.0f, 1.0f);
+    PlayerHUD->SetSpedometer(SpedometerSpeedRatio);
+
+    if (SpedometerSpeedRatio > 0.2f)
+    {
+        CameraFollowDistance = FMath::FInterpTo(CameraFollowDistance, 200.0f, DeltaTime, 2);
+    }
+    else
+    {
+        CameraFollowDistance = FMath::FInterpTo(CameraFollowDistance, 300.0f, DeltaTime, 2);
+    }
+
     float CurrentXScaleL = FlameTrailMeshL->GetRelativeScale3D().X;
     float NewXScaleL = FMath::FInterpTo(CurrentXScaleL, DesiredScale, DeltaTime, ScaleInterpSpeed);
-    FlameTrailMeshL->SetRelativeScale3D(FVector(NewXScaleL, 1.0f, 1.0f));
+    FlameTrailMeshL->SetRelativeScale3D(FVector(NewXScaleL, -1.0f, 1.0f));
 
     float CurrentXScaleR = FlameTrailMeshR->GetRelativeScale3D().X;
     float NewXScaleR = FMath::FInterpTo(CurrentXScaleR, DesiredScale, DeltaTime, ScaleInterpSpeed);
@@ -286,7 +332,7 @@ void AMainCar::Tick(float DeltaTime)
         SetActorRotation(NewRotation);
     }
 
-    DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
 
     if (steerLeft && !steerRight)
     {
@@ -338,24 +384,47 @@ void AMainCar::Tick(float DeltaTime)
     {
         CarMesh->SetLinearDamping(CurrentThrottle < 0.f ? 8.0f : 3.0f);
     }
+
+    if (bIsTimerRunning)
+    {
+        CurrentLaptimeFloat += DeltaTime;
+
+        PlayerHUD->SetCurrentLaptime(GetFormattedTime());
+    }
 }
+
+FText AMainCar::GetFormattedTime() const
+{
+    int32 TotalMilliseconds = FMath::FloorToInt(CurrentLaptimeFloat * 1000.f);
+
+    int32 Minutes = TotalMilliseconds / (60 * 1000);
+    int32 Seconds = (TotalMilliseconds % (60 * 1000)) / 1000;
+    int32 Milliseconds = TotalMilliseconds % 1000;
+
+    FString Formatted = FString::Printf(TEXT("%d.%02d.%03d"), Minutes, Seconds, Milliseconds);
+    return FText::FromString(Formatted);
+}
+
 
 void AMainCar::Boosting(const FInputActionValue& Value)
 {
     bIsBoosting = (CurrentBoost > 0);
-    MaxFOV = 150;
 }
 
 void AMainCar::StopBoosting(const FInputActionValue& Value)
 {
     bIsBoosting = false;
-    MaxFOV = 140;
 }
 
 void AMainCar::UpdateBoost(float DeltaTime)
 {
-    if (bIsBoosting && CurrentBoost > 0 && TargetThrottle > 0)
+    if (bIsBoosting && CurrentBoost > 0.0f && TargetThrottle > 0 && !bIsRecharging)
     {
+        PlayerHUD->SetFillImage(BoostBarFilled);
+
+        MaxFOV = 150;
+        MaxFlameScale = 2.0f;
+
         FVector BoostForce = GetActorForwardVector() * BoostForceCoefficient;
         CarMesh->AddForce(BoostForce, NAME_None, true);
 
@@ -364,13 +433,28 @@ void AMainCar::UpdateBoost(float DeltaTime)
 
         if (CurrentBoost <= 0.0f)
         {
+            PlayerHUD->SetFillImage(BoostBarEmpty);
+
+            bIsRecharging = true;
             bIsBoosting = false;
+
+            MaxFOV = 140;
+            MaxFlameScale = 1;
         }
     }
     else
     {
+        MaxFOV = 140;
+        MaxFlameScale = 1;
+
         CurrentBoost += BoostRechargeRate * DeltaTime;
         CurrentBoost = FMath::Clamp(CurrentBoost, 0.0f, MaxBoost);
+
+        if (CurrentBoost >= MaxBoost / 2 && bIsRecharging)
+        {
+            bIsRecharging = false;
+            PlayerHUD->SetFillImage(BoostBarFilled);
+        }
     }
 
     if (PlayerHUD && PlayerHUD->IsInViewport())
@@ -425,6 +509,15 @@ void AMainCar::SteerRightReleased()
 void AMainCar::BrakePressed()
 {
 	bBraking = true;
+
+    if (CarMeshes.Num() == 0 || FlameMeshes.Num() == 0)
+        return;
+
+    CurrentIndex = (CurrentIndex + 1) % FMath::Min(CarMeshes.Num(), FlameMeshes.Num());
+
+    CarMesh->SetStaticMesh(CarMeshes[CurrentIndex]);
+    FlameTrailMeshL->SetStaticMesh(FlameMeshes[CurrentIndex]);
+    FlameTrailMeshR->SetStaticMesh(FlameMeshes[CurrentIndex]);
 }
 
 void AMainCar::BrakeReleased()
