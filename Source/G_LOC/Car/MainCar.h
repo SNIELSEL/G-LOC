@@ -9,7 +9,7 @@
 #include "MainCar.generated.h"
 
 UCLASS()
-class UNTITLED_RACE_GAME_API AMainCar : public APawn
+class G_LOC_API AMainCar : public APawn
 {
 	GENERATED_BODY()
 

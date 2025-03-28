@@ -5,7 +5,7 @@
 #include "IngameUI.generated.h"
 
 UCLASS(Abstract)
-class UNTITLED_RACE_GAME_API UIngameUI : public UUserWidget
+class G_LOC_API UIngameUI : public UUserWidget
 {
 	GENERATED_BODY()
 public:

@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class Untitled_race_game : ModuleRules
+public class G_LOC : ModuleRules
 {
-	public Untitled_race_game(ReadOnlyTargetRules Target) : base(Target)
+	public G_LOC(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 

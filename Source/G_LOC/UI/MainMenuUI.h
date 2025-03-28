@@ -9,7 +9,7 @@ class UWidget;
 class UWidgetSwitcher;
 
 UCLASS(Abstract)
-class UNTITLED_RACE_GAME_API UMainMenuUI : public UUserWidget
+class G_LOC_API UMainMenuUI : public UUserWidget
 {
 	GENERATED_BODY()
 
