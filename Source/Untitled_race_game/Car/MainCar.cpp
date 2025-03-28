@@ -424,7 +424,7 @@ void AMainCar::UpdateBoost(float DeltaTime)
         PlayerHUD->SetFillImage(BoostBarFilled);
 
         MaxFOV = 150;
-        MaxFlameScale = 2.0f;
+        MaxFlameScale = 1.6f;
 
         FVector BoostForce = GetActorForwardVector() * BoostForceCoefficient;
         CarMesh->AddForce(BoostForce, NAME_None, true);
@@ -510,15 +510,6 @@ void AMainCar::SteerRightReleased()
 void AMainCar::BrakePressed()
 {
 	bBraking = true;
-
-    if (CarMeshes.Num() == 0 || FlameMeshes.Num() == 0)
-        return;
-
-    CurrentIndex = (CurrentIndex + 1) % FMath::Min(CarMeshes.Num(), FlameMeshes.Num());
-
-    CarMesh->SetStaticMesh(CarMeshes[CurrentIndex]);
-    FlameTrailMeshL->SetStaticMesh(FlameMeshes[CurrentIndex]);
-    FlameTrailMeshR->SetStaticMesh(FlameMeshes[CurrentIndex]);
 }
 
 void AMainCar::BrakeReleased()
