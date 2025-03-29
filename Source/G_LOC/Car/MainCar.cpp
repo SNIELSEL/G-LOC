@@ -328,6 +328,16 @@ void AMainCar::Tick(float DeltaTime)
         CarMesh->AddTorqueInDegrees(brakingTorque, NAME_None, true);
     }
 
+    const float MaxRollAngle = 20.0f;
+    const float RollSpeed = 50.0f;
+
+    FRotator CurrentRotation = GetActorRotation();
+    float CurrentRoll = CurrentRotation.Roll;
+    float DesiredRoll = SteeringInput * MaxRollAngle;
+    float RollError = DesiredRoll - CurrentRoll;
+    float RollTorque = RollError * RollSpeed;
+    CarMesh->AddTorqueInDegrees(GetActorForwardVector() * -RollTorque, NAME_None, true);
+
     if (bBraking)
     {
         FVector CurrentVelocity = CarMesh->GetComponentVelocity();
