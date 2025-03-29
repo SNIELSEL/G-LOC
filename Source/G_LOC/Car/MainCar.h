@@ -82,8 +82,9 @@ private:
 	float LinetraceEndHeight = -900;
 
 	//hover
-	float DesiredHoverHeight = 140;
+	float DesiredHoverHeight = 150;
 	float HoverInterpSpeed = 25;
+	float RotationInterpSpeed = 8;
 
 	//engine
 	float EngineForceCoefficient = 20000;
@@ -103,7 +104,7 @@ private:
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 11;
+	float SteeringTorqueCoefficient = 10;
 	float MaxSteeringAngularVelocity = 120;
 	//brakes
 	float BrakingTorqueConstant = 180;

@@ -5,9 +5,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-#include "GameFramework/SaveGame.h"
-#include "Kismet/GameplayStatics.h"
-#include "../MySaveGame.h"
+
 
 AMainCar::AMainCar()
 {
@@ -38,16 +36,6 @@ AMainCar::AMainCar()
 void AMainCar::BeginPlay()
 {
     Super::BeginPlay();
-
-    if (UGameplayStatics::DoesSaveGameExist(TEXT("Slot"), 0))
-    {
-        UMySaveGame* LoadedGame = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("Slot"), 0));
-        if (LoadedGame)
-        {
-            int32 car = LoadedGame->SelectedCar;
-            UE_LOG(LogTemp, Warning, TEXT("Loaded Car Index: %d"), car);
-        }
-    }
 
     UInputMappingContext* InputContext_Asset = LoadObject<UInputMappingContext>(nullptr, TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
     UInputAction* PressBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
@@ -283,16 +271,23 @@ void AMainCar::Tick(float DeltaTime)
 
     if (GetWorld()->LineTraceSingleByObjectType(Hit, traceStart, traceEnd, ObjectQueryParams, Params))
     {
-        FVector DesiredPosition = Hit.ImpactPoint + Hit.ImpactNormal * DesiredHoverHeight;
+        float UpDot = FVector::DotProduct(Hit.ImpactNormal, FVector::UpVector);
+        float SteepThreshold = 0.7f;
+        FVector EffectiveNormal = (UpDot < SteepThreshold) ? FMath::Lerp(Hit.ImpactNormal, FVector::UpVector, 0.5f) : Hit.ImpactNormal;
 
+        FVector DesiredPosition = Hit.ImpactPoint + EffectiveNormal * DesiredHoverHeight;
         FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, HoverInterpSpeed);
         SetActorLocation(NewPosition, true);
 
         FRotator CurrentRotation = GetActorRotation();
-        FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), Hit.ImpactNormal).GetSafeNormal();
-        FRotator DesiredRotation = FRotationMatrix::MakeFromXZ(ForwardVector, Hit.ImpactNormal).Rotator();
+        FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), EffectiveNormal).GetSafeNormal();
+        FRotator DesiredRotation = FRotationMatrix::MakeFromXZ(ForwardVector, EffectiveNormal).Rotator();
 
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, DesiredRotation, DeltaTime, 8.0f);
+        // Incorporate the roll offset based on steering input
+        const float MaxRollAngle = 10.0f;
+        DesiredRotation.Roll += SteeringInput * MaxRollAngle;
+
+        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, DesiredRotation, DeltaTime, RotationInterpSpeed);
         SetActorRotation(NewRotation);
     }
 
@@ -327,16 +322,6 @@ void AMainCar::Tick(float DeltaTime)
         FVector brakingTorque = -currentAngularVelocity.GetSafeNormal() * BrakingTorqueConstant;
         CarMesh->AddTorqueInDegrees(brakingTorque, NAME_None, true);
     }
-
-    const float MaxRollAngle = 20.0f;
-    const float RollSpeed = 50.0f;
-
-    FRotator CurrentRotation = GetActorRotation();
-    float CurrentRoll = CurrentRotation.Roll;
-    float DesiredRoll = SteeringInput * MaxRollAngle;
-    float RollError = DesiredRoll - CurrentRoll;
-    float RollTorque = RollError * RollSpeed;
-    CarMesh->AddTorqueInDegrees(GetActorForwardVector() * -RollTorque, NAME_None, true);
 
     if (bBraking)
     {

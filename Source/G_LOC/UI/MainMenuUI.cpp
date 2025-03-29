@@ -50,6 +50,12 @@ void UMainMenuUI::NativeConstruct()
 			Pair.Key->OnClicked.AddDynamic(this, &UMainMenuUI::OnAnyTeamSelectionButtonClicked);
 		}
 	}
+
+	UE_LOG(LogTemp, Display, TEXT("LOGGED"));
+
+	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+	SaveGameInstance->SelectedCar = 0;
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, TEXT("Slot"), 0);
 }
 void UMainMenuUI::OnAnyMenuButtonClicked()
 {
@@ -71,6 +77,10 @@ void UMainMenuUI::OnAnyMenuButtonClicked()
 	else if (Clicked == QuitButton)
 	{
 		FGenericPlatformMisc::RequestExit(false);
+	}
+	else if (Clicked == SelectionConfirm)
+	{
+		UGameplayStatics::OpenLevel(GetWorld(), FName("NewTrackDesign"));
 	}
 
 	if (UWidget** Target = ButtonToTargetMap.Find(Clicked))
@@ -170,7 +180,7 @@ void UMainMenuUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 
 void UMainMenuUI::SetCar(UButton* Clicked)
 {
-	int32 CarIndex = -1;
+	int32 CarIndex = 0;
 
 	if (Clicked == Vanska1)       CarIndex = 0;
 	else if (Clicked == Vanska2)  CarIndex = 1;
