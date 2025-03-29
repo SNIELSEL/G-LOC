@@ -2,6 +2,9 @@
 #include "Components/Button.h"
 #include "Components/WidgetSwitcher.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
+#include "GameFramework/SaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "../MySaveGame.h"
 
 void UMainMenuUI::NativeConstruct()
 {
@@ -97,6 +100,9 @@ void UMainMenuUI::OnAnyTeamSelectionButtonClicked()
 		return;
 	}
 
+	UMainMenuUI::SetCar(Clicked);
+
+
 	if (UWidget** Target = ButtonToLoreMap.Find(Clicked))
 	{
 		if (LoreSwitcher && *Target)
@@ -159,5 +165,28 @@ void UMainMenuUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
 			Pair.Value->SetColorAndOpacity(FSlateColor(FLinearColor(0.125f, 0.341f, 0.671f, 1.0f)));
 			break;
 		}
+	}
+}
+
+void UMainMenuUI::SetCar(UButton* Clicked)
+{
+	int32 CarIndex = -1;
+
+	if (Clicked == Vanska1)       CarIndex = 0;
+	else if (Clicked == Vanska2)  CarIndex = 1;
+	else if (Clicked == Schwalbe1) CarIndex = 2;
+	else if (Clicked == Schwalbe2) CarIndex = 3;
+	else if (Clicked == Yamazaki1) CarIndex = 4;
+	else if (Clicked == Yamazaki2) CarIndex = 5;
+	else if (Clicked == Cannova1)  CarIndex = 6;
+	else if (Clicked == Cannova2)  CarIndex = 7;
+
+	if (CarIndex >= 0)
+	{
+		UE_LOG(LogTemp, Display, TEXT("LOGGED"));
+
+		UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+		SaveGameInstance->SelectedCar = CarIndex;
+		UGameplayStatics::SaveGameToSlot(SaveGameInstance, TEXT("Slot"), 0);
 	}
 }

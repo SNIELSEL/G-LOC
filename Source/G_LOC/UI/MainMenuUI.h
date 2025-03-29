@@ -3,6 +3,7 @@
 #include "CoreMinimal.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
 #include "MainMenuUI.generated.h"
 
@@ -16,12 +17,16 @@ class G_LOC_API UMainMenuUI : public UUserWidget
 	GENERATED_BODY()
 
 protected:
+
+	void SetCar(UButton* ClickedButton);
+
 	virtual void NativeConstruct() override;
+
 	UFUNCTION()
 	void OnAnyMenuButtonClicked();
 	UFUNCTION()
 	void OnAnyTeamSelectionButtonClicked();
-	UFUNCTION()
+	
 	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
 	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 

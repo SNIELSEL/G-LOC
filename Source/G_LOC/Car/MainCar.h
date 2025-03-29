@@ -82,14 +82,11 @@ private:
 	float LinetraceEndHeight = -900;
 
 	//hover
-	float DesiredHoverHeight = 130;
-	float HoverForceCoefficient = 2;
-	float HoverDamping = 110;
-
-	float HoverInterpSpeed = 20;
+	float DesiredHoverHeight = 140;
+	float HoverInterpSpeed = 25;
 
 	//engine
-	float EngineForceCoefficient = 19000;
+	float EngineForceCoefficient = 20000;
 	float MaxSpeedForClamp = 4000;
 
 	float CurrentThrottle = 0;
@@ -106,11 +103,8 @@ private:
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 9;
+	float SteeringTorqueCoefficient = 11;
 	float MaxSteeringAngularVelocity = 120;
-
-	float AlignmentTorqueCoefficient = 1500;
-	float DampingCoefficient = 30.0f;
 	//brakes
 	float BrakingTorqueConstant = 180;
 	float BrakeForceCoefficient = 0.5f;
@@ -119,8 +113,6 @@ private:
 	bool steerLeft = false;
 	bool steerRight = false;
 
-	//input
-	float ThrottleInput;
 	float SteeringInput;
 	bool bBraking;
 
@@ -145,16 +137,9 @@ private:
 	TArray<UStaticMesh*> CarMeshes;
 	TArray<UStaticMesh*> FlameMeshes;
 
-	int32 CurrentIndex = 0;
-
 	//timer
 	float CurrentLaptimeFloat = 0;
 	bool bIsTimerRunning = true;
-
-	FVector LastCameraPosition;
-	FRotator LastCameraRotation;
-	FVector DesiredCameraPosition;
-	FRotator DesiredCameraLookAt;
 
 	//void
 	virtual void BeginPlay() override;

@@ -1,6 +1,3 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "MainCar.h"
 #include "GameFrameWork/SpringArmComponent.h"
 #include "Camera/CameraComponent.h"
@@ -8,6 +5,9 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
+#include "GameFramework/SaveGame.h"
+#include "Kismet/GameplayStatics.h"
+#include "../MySaveGame.h"
 
 AMainCar::AMainCar()
 {
@@ -18,6 +18,99 @@ AMainCar::AMainCar()
     LineTraceParent = CreateDefaultSubobject<USceneComponent>(TEXT("LinetraceParent"));
     CenterLineTrace = CreateDefaultSubobject<USceneComponent>(TEXT("CenterStartScene"));
     CenterLineTraceEnd = CreateDefaultSubobject<USceneComponent>(TEXT("CenterEndLineTrace"));
+
+    AutoPossessPlayer = EAutoReceiveInput::Player0;
+
+    RootComponent = CarMesh;
+
+    FlameTrailMeshL->SetupAttachment(CarMesh);
+    FlameTrailMeshR->SetupAttachment(CarMesh);
+
+    LineTraceParent->SetupAttachment(CarMesh);
+
+    CenterLineTrace->SetupAttachment(LineTraceParent);
+    CenterLineTrace->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
+
+    CenterLineTraceEnd->SetupAttachment(LineTraceParent);
+    CenterLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceEndHeight));
+}
+
+void AMainCar::BeginPlay()
+{
+    Super::BeginPlay();
+
+    if (UGameplayStatics::DoesSaveGameExist(TEXT("Slot"), 0))
+    {
+        UMySaveGame* LoadedGame = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("Slot"), 0));
+        if (LoadedGame)
+        {
+            int32 car = LoadedGame->SelectedCar;
+            UE_LOG(LogTemp, Warning, TEXT("Loaded Car Index: %d"), car);
+        }
+    }
+
+    UInputMappingContext* InputContext_Asset = LoadObject<UInputMappingContext>(nullptr, TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
+    UInputAction* PressBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
+    UInputAction* ReleaseBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
+    UInputAction* Boost_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/Boost.Boost'"));
+    UInputAction* W_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/W.W'"));
+    UInputAction* S_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/S.S'"));
+    UInputAction* A_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/A.A'"));
+    UInputAction* D_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/D.D'"));
+
+
+    UTexture2D* emptyBoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBarEmpty.BoostBarEmpty'"));
+    UTexture2D* BoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBar.BoostBar'"));
+
+    TSubclassOf<UIngameUI> UI_Asset = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("WidgetBlueprint'/Game/Scripts/UI/IngameUI.IngameUI_C'"));
+
+    PlayerHUDClass = UI_Asset;
+
+    InputMapping = InputContext_Asset;
+    PressBrake = PressBrake_Asset;
+    ReleaseBrake = ReleaseBrake_Asset;
+    PressBoost = Boost_Asset;
+    MoveForwards = W_Asset;
+    MoveBackwards = S_Asset;
+    SteerLeftAction = A_Asset;
+    SteerRightAction = D_Asset;
+
+    BoostBarFilled = BoostBar_Asset;
+    BoostBarEmpty = emptyBoostBar_Asset;
+
+    CarMesh->SetLinearDamping(3.0f);
+    CarMesh->SetAngularDamping(5.0f);
+    CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
+    CarMesh->SetAllUseCCD(true);
+
+    CurrentBoost = 100;
+    MaxBoost = 100;
+    PrimaryActorTick.bCanEverTick = true;
+
+    CarMesh->SetEnableGravity(false);
+    CarMesh->SetSimulatePhysics(true);
+
+    CameraC->SetFieldOfView(100);
+    CameraC->SetRelativeLocation(FVector(-600, 0, 140));
+    CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
+
+    if (IsLocallyControlled() && PlayerHUDClass)
+    {
+        PlayerHUD = CreateWidget<UIngameUI>(GetWorld(), PlayerHUDClass);
+        check(PlayerHUD);
+        PlayerHUD->AddToPlayerScreen();
+    }
+}
+
+void AMainCar::EndPlay(const EEndPlayReason::Type EndPlayReason)
+{
+    if (PlayerHUD)
+    {
+        PlayerHUD->RemoveFromParent();
+        PlayerHUD = nullptr;
+    }
+
+    Super::EndPlay(EndPlayReason);
 }
 
 void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -74,8 +167,6 @@ void AMainCar::CameraMovement(float DeltaTime)
     {
         SurfaceNormal = SurfaceHit.ImpactNormal;
     }
-    FRotator CarRotationNoRoll = GetActorRotation();
-    CarRotationNoRoll.Roll = 0;
 
     FVector ForwardProjected = FVector::VectorPlaneProject(GetActorForwardVector(), SurfaceNormal).GetSafeNormal();
     FRotator SurfaceAlignedRotation = FRotationMatrix::MakeFromXZ(ForwardProjected, SurfaceNormal).Rotator();
@@ -99,134 +190,6 @@ void AMainCar::CameraMovement(float DeltaTime)
     float CurrentFOV = CameraC->FieldOfView;
     float NewFOV = FMath::FInterpTo(CurrentFOV, DesiredFOV, DeltaTime, FOVInterpSpeed);
     CameraC->SetFieldOfView(NewFOV);
-}
-
-    void AMainCar::BeginPlay()
-    {
-        Super::BeginPlay();
-
-        RootComponent = CarMesh;
-
-        FlameTrailMeshL->SetupAttachment(CarMesh);
-        FlameTrailMeshR->SetupAttachment(CarMesh);
-
-        LineTraceParent->SetupAttachment(CarMesh);
-
-        UStaticMesh* CannovaShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShip.CannovaShip'"));
-        UStaticMesh* CannovaShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Cannova/CannovaShipP2.CannovaShipP2'"));
-        UStaticMesh* SchwalbeShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Schwalbe/SchwalbeShip.SchwalbeShip'"));
-        UStaticMesh* SchwalbeShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Schwalbe/SchwalbeShipP2.SchwalbeShipP2'"));
-        UStaticMesh* YamazakiShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Yamazaki/YamazakiShip.YamazakiShip'"));
-        UStaticMesh* YamazakiShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Yamazaki/YamazakiShipP2.YamazakiShipP2'"));
-        UStaticMesh* VanskaShipMesh1_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Vanska/VanskaShip.VanskaShip'"));
-        UStaticMesh* VanskaShipMesh2_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Car/Vanska/VanskaShipP2.VanskaShipP2'"));
-
-        UStaticMesh* VanskaFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/VanskaShipFlames.VanskaShipFlames'"));
-        UStaticMesh* CannovaFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/CannovaShipFlames.CannovaShipFlames'"));
-        UStaticMesh* SchwalbeFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/SchwalbeShipFlames.SchwalbeShipFlames'"));
-        UStaticMesh* YamazakiFlameMesh_Asset = LoadObject<UStaticMesh>(nullptr, TEXT("StaticMesh'/Game/Art/Particles/YamazakiShipFlames.YamazakiShipFlames'"));
-
-        UInputMappingContext* InputContext_Asset = LoadObject<UInputMappingContext>(nullptr, TEXT("InputMappingContext'/Game/Scripts/Input/Car_Input_Context.Car_Input_Context'"));
-        UInputAction* PressBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakePress.BrakePress'"));
-        UInputAction* ReleaseBrake_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/BrakeRelease.BrakeRelease'"));
-        UInputAction* Boost_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/Boost.Boost'"));
-        UInputAction* W_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/W.W'"));
-        UInputAction* S_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/S.S'"));
-        UInputAction* A_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/A.A'"));
-        UInputAction* D_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/D.D'"));
-
-
-        UTexture2D* emptyBoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBarEmpty.BoostBarEmpty'"));
-        UTexture2D* BoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBar.BoostBar'"));
-
-        TSubclassOf<UIngameUI> UI_Asset = StaticLoadClass(UUserWidget::StaticClass(), nullptr, TEXT("WidgetBlueprint'/Game/Scripts/UI/IngameUI.IngameUI_C'"));
-
-        PlayerHUDClass = UI_Asset;
-
-        InputMapping = InputContext_Asset;
-        PressBrake = PressBrake_Asset;
-        ReleaseBrake = ReleaseBrake_Asset;
-        PressBoost = Boost_Asset;
-        MoveForwards = W_Asset;
-        MoveBackwards = S_Asset;
-        SteerLeftAction = A_Asset;
-        SteerRightAction = D_Asset;
-
-        BoostBarFilled = BoostBar_Asset;
-        BoostBarEmpty = emptyBoostBar_Asset;
-
-        FlameTrailMeshL->SetStaticMesh(VanskaFlameMesh_Asset);
-        FlameTrailMeshR->SetStaticMesh(VanskaFlameMesh_Asset);
-        CarMesh->SetStaticMesh(VanskaShipMesh1_Asset);
-
-        CarMeshes.Add(CannovaShipMesh1_Asset);
-        CarMeshes.Add(CannovaShipMesh1_Asset);
-        CarMeshes.Add(SchwalbeShipMesh1_Asset);
-        CarMeshes.Add(SchwalbeShipMesh1_Asset);
-        CarMeshes.Add(YamazakiShipMesh1_Asset);
-        CarMeshes.Add(YamazakiShipMesh2_Asset);
-        CarMeshes.Add(VanskaShipMesh1_Asset);
-        CarMeshes.Add(VanskaShipMesh2_Asset);
-
-        FlameMeshes.Add(CannovaFlameMesh_Asset);
-        FlameMeshes.Add(CannovaFlameMesh_Asset);
-        FlameMeshes.Add(SchwalbeFlameMesh_Asset);
-        FlameMeshes.Add(SchwalbeFlameMesh_Asset);
-        FlameMeshes.Add(YamazakiFlameMesh_Asset);
-        FlameMeshes.Add(YamazakiFlameMesh_Asset);
-        FlameMeshes.Add(VanskaFlameMesh_Asset);
-        FlameMeshes.Add(VanskaFlameMesh_Asset);
-
-        CarMesh->SetLinearDamping(3.0f);
-        CarMesh->SetAngularDamping(5.0f);
-        CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
-        CarMesh->SetAllUseCCD(true);
-
-        CurrentBoost = 100;
-        MaxBoost = 100;
-        PrimaryActorTick.bCanEverTick = true;
-
-        CarMesh->SetEnableGravity(false);
-        CarMesh->SetSimulatePhysics(true);
-
-        FlameTrailMeshL->SetRelativeLocation(FVector(-39.4f, 0, 0));
-        FlameTrailMeshL->SetRelativeScale3D(FVector(1, -1, 1));
-        FlameTrailMeshR->SetRelativeLocation(FVector(-39.4f, 0, 0));
-
-        CameraC->SetFieldOfView(100);
-        CameraC->SetRelativeLocation(FVector(-600, 0, 140));
-        CameraC->SetRelativeRotation(FRotator(-6, 0, 0));
-
-        AutoPossessPlayer = EAutoReceiveInput::Player0;
-
-        CenterLineTrace->SetupAttachment(LineTraceParent);
-        CenterLineTrace->SetWorldLocation(GetActorLocation() + FVector(0, 0, LinetraceStartHeight));
-
-        CenterLineTraceEnd->SetupAttachment(LineTraceParent);
-        CenterLineTraceEnd->SetWorldLocation(GetActorLocation() + FVector(0, 0, -1000));
-
-        if (IsLocallyControlled() && PlayerHUDClass)
-        {
-            PlayerHUD = CreateWidget<UIngameUI>(GetWorld(), PlayerHUDClass);
-            check(PlayerHUD);
-            PlayerHUD->AddToPlayerScreen();
-
-            if (PlayerHUD && PlayerHUD->IsInViewport())
-            {
-                PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
-            }
-        }
-    }
-
-void AMainCar::EndPlay(const EEndPlayReason::Type EndPlayReason)
-{
-    if (PlayerHUD)
-    {
-        PlayerHUD->RemoveFromParent();
-        PlayerHUD = nullptr;
-    }
-
-    Super::EndPlay(EndPlayReason);
 }
 
 void AMainCar::UpdateThrottle(float DeltaTime)
@@ -462,8 +425,6 @@ void AMainCar::UpdateBoost(float DeltaTime)
     {
         PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
     }
-
-    PlayerHUD->SetBoost(CurrentBoost, MaxBoost);
 }
 
 void AMainCar::Accelerate(const FInputActionValue& Value)
