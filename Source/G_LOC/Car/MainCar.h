@@ -87,7 +87,7 @@ private:
 	float RotationInterpSpeed = 8;
 
 	//engine
-	float EngineForceCoefficient = 20000;
+	float EngineForceCoefficient = 18000;
 	float MaxSpeedForClamp = 4000;
 
 	float CurrentThrottle = 0;
@@ -104,8 +104,8 @@ private:
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 10;
-	float MaxSteeringAngularVelocity = 120;
+	float SteeringTorqueCoefficient = 8;
+	float MaxSteeringAngularVelocity = 110;
 	//brakes
 	float BrakingTorqueConstant = 180;
 	float BrakeForceCoefficient = 0.5f;

@@ -68,7 +68,6 @@ void AMainCar::BeginPlay()
 
     CarMesh->SetLinearDamping(3.0f);
     CarMesh->SetAngularDamping(5.0f);
-    CarMesh->SetCenterOfMass(FVector(0.0f, 0.0f, -50.0f));
     CarMesh->SetAllUseCCD(true);
 
     CurrentBoost = 100;
@@ -273,25 +272,37 @@ void AMainCar::Tick(float DeltaTime)
     {
         float UpDot = FVector::DotProduct(Hit.ImpactNormal, FVector::UpVector);
         float SteepThreshold = 0.7f;
-        FVector EffectiveNormal = (UpDot < SteepThreshold) ? FMath::Lerp(Hit.ImpactNormal, FVector::UpVector, 0.5f) : Hit.ImpactNormal;
+        bool bSteepSurface = UpDot < SteepThreshold;
 
-        FVector DesiredPosition = Hit.ImpactPoint + EffectiveNormal * DesiredHoverHeight;
-        FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, HoverInterpSpeed);
-        SetActorLocation(NewPosition, true);
+        FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), Hit.ImpactNormal).GetSafeNormal();
+        FQuat BaseQuat = FRotationMatrix::MakeFromXZ(ForwardVector, Hit.ImpactNormal).ToQuat();
 
-        FRotator CurrentRotation = GetActorRotation();
-        FVector ForwardVector = FVector::VectorPlaneProject(GetActorForwardVector(), EffectiveNormal).GetSafeNormal();
-        FRotator DesiredRotation = FRotationMatrix::MakeFromXZ(ForwardVector, EffectiveNormal).Rotator();
+        float BlendFactor = bSteepSurface ? 1.0f : UpDot; 
+        float AdjustedRollAngle = SteeringInput * -10 * BlendFactor;
+        FQuat RollQuat = FQuat(ForwardVector, FMath::DegreesToRadians(AdjustedRollAngle));
 
-        // Incorporate the roll offset based on steering input
-        const float MaxRollAngle = 10.0f;
-        DesiredRotation.Roll += SteeringInput * MaxRollAngle;
+        FQuat DesiredQuat = RollQuat * BaseQuat;
+        FQuat NewQuat = FQuat::Slerp(GetActorQuat(), DesiredQuat, DeltaTime * RotationInterpSpeed);
+        SetActorRotation(NewQuat);
 
-        FRotator NewRotation = FMath::RInterpTo(CurrentRotation, DesiredRotation, DeltaTime, RotationInterpSpeed);
-        SetActorRotation(NewRotation);
+        if (!bSteepSurface)
+        {
+            FVector DesiredPosition = Hit.ImpactPoint + Hit.ImpactNormal * DesiredHoverHeight;
+            FVector NewPosition = FMath::VInterpTo(GetActorLocation(), DesiredPosition, DeltaTime, HoverInterpSpeed);
+            SetActorLocation(NewPosition, true);
+        }
+        else
+        {
+            FVector CurrentLocation = GetActorLocation();
+            FVector WallNormal = Hit.ImpactNormal;
+            FVector ProjectedLocation = CurrentLocation - FVector::DotProduct(CurrentLocation - Hit.ImpactPoint, WallNormal) * WallNormal;
+            FVector DesiredPosition = ProjectedLocation + WallNormal * DesiredHoverHeight;
+            FVector NewPosition = FMath::VInterpTo(CurrentLocation, DesiredPosition, DeltaTime, HoverInterpSpeed);
+            SetActorLocation(NewPosition, true);
+        }
     }
 
-    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
+    DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
 
     if (steerLeft && !steerRight)
     {
