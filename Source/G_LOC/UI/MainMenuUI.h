@@ -43,6 +43,9 @@ public:
 	void SaveVolumeSettings(float Master, float Music, float SFX);
 
 	//Audio
+	UPROPERTY()
+	UAudioComponent* MainMenuMusicComp;
+
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
 	USoundMix* MainSoundMix;
 

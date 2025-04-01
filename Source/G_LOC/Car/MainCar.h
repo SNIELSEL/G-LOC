@@ -68,6 +68,9 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
 	class UInputAction* SteerRightAction;
 
+	UPROPERTY(EditAnywhere, Category = "EnhancedInput")
+	class UInputAction* PauseGame;
+
 	//empty/cheap objects for start and end point for raycast/line trace so that i can use those and use their attachment feature to make my raycast automatically rotate
 	UPROPERTY(BlueprintReadWrite, VisibleAnywhere)
 		USceneComponent* LineTraceParent;
@@ -104,12 +107,13 @@ private:
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 12;
-	float MaxSteeringAngularVelocity = 120;
+	float SteeringTorqueCoefficient = 15;
+	float MaxSteeringAngularVelocity = 130;
 
 	//brakes
 	float BrakingTorqueConstant = 240;
 	float BrakeForceCoefficient = 0.5f;
+	float ReverseForceCoefficient = 50000;
 
 	//bools
 	bool steerLeft = false;
@@ -158,16 +162,11 @@ private:
 	void UpdateBoost(float DeltaTime);
 	void Accelerate(const FInputActionValue& Value);
 	void StopAccelerate(const FInputActionValue& Value);
-	void Decelerate(const FInputActionValue& Value);
-	void StopDecelerate(const FInputActionValue& Value);
 	void SteerLeftPressed();
 	void SteerLeftReleased();
 	void SteerRightPressed();
 	void SteerRightReleased();
 	void BrakePressed();
 	void BrakeReleased();
-
-	//Look
-	void LookVertical(float value);
-	void LookHorizontal(float value);
+	void PauseGameState();
 };

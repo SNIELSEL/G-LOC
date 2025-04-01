@@ -5,7 +5,7 @@
 #include "InputMappingContext.h"
 #include "EnhancedInputSubsystems.h"
 #include "EnhancedInputComponent.h"
-
+#include "Kismet/GameplayStatics.h"
 
 AMainCar::AMainCar()
 {
@@ -45,7 +45,7 @@ void AMainCar::BeginPlay()
     UInputAction* S_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/S.S'"));
     UInputAction* A_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/A.A'"));
     UInputAction* D_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/D.D'"));
-
+    UInputAction* Esc_Asset = LoadObject<UInputAction>(nullptr, TEXT("InputAction'/Game/Scripts/Input/Esc.Esc'"));
 
     UTexture2D* emptyBoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBarEmpty.BoostBarEmpty'"));
     UTexture2D* BoostBar_Asset = LoadObject<UTexture2D>(nullptr, TEXT("Texture2D'/Game/UI/Images/BoostBar.BoostBar'"));
@@ -62,6 +62,7 @@ void AMainCar::BeginPlay()
     MoveBackwards = S_Asset;
     SteerLeftAction = A_Asset;
     SteerRightAction = D_Asset;
+    PauseGame = Esc_Asset;
 
     BoostBarFilled = BoostBar_Asset;
     BoostBarEmpty = emptyBoostBar_Asset;
@@ -120,9 +121,6 @@ void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
         Input->BindAction(MoveForwards, ETriggerEvent::Triggered, this, &AMainCar::Accelerate);
         Input->BindAction(MoveForwards, ETriggerEvent::Completed, this, &AMainCar::StopAccelerate);
 
-        Input->BindAction(MoveBackwards, ETriggerEvent::Triggered, this, &AMainCar::Decelerate);
-        Input->BindAction(MoveBackwards, ETriggerEvent::Completed, this, &AMainCar::StopDecelerate);
-
         Input->BindAction(SteerLeftAction, ETriggerEvent::Started, this, &AMainCar::SteerLeftPressed);
         Input->BindAction(SteerLeftAction, ETriggerEvent::Completed, this, &AMainCar::SteerLeftReleased);
 
@@ -132,8 +130,7 @@ void AMainCar::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 		Input->BindAction(PressBrake, ETriggerEvent::Triggered, this, &AMainCar::BrakePressed);
 		Input->BindAction(PressBrake, ETriggerEvent::Completed, this, &AMainCar::BrakeReleased);
 
-		PlayerInputComponent->BindAxis(FName("LookUD"), this, &AMainCar::LookVertical);
-		PlayerInputComponent->BindAxis(FName("LookLR"), this, &AMainCar::LookHorizontal);
+        Input->BindAction(PauseGame, ETriggerEvent::Started, this, &AMainCar::PauseGameState);
 	}
 }
 
@@ -344,10 +341,9 @@ void AMainCar::Tick(float DeltaTime)
             FVector BrakeDirection = -CurrentVelocity.GetSafeNormal();
 
             float BrakeStrength = FMath::Clamp(CurrentSpeed / 500.f, 0.f, 1.f);
-            FVector BrakeForce = BrakeDirection * BrakeForceCoefficient * BrakeStrength;
+            FVector BrakeForce = BrakeDirection * ReverseForceCoefficient * BrakeStrength;
 
             CarMesh->AddForce(BrakeForce, NAME_None, true);
-            CarMesh->SetLinearDamping(10.0f);
         }
     }
     else
@@ -443,16 +439,6 @@ void AMainCar::StopAccelerate(const FInputActionValue& Value)
     TargetThrottle = 0.0f;
 }
 
-void AMainCar::Decelerate(const FInputActionValue& Value)
-{
-    TargetThrottle = FMath::Clamp(Value.Get<float>(), -1.0f, 0.0f);
-}
-
-void AMainCar::StopDecelerate(const FInputActionValue& Value)
-{
-    TargetThrottle = 0.0f;
-}
-
 void AMainCar::SteerLeftPressed()
 {
     steerLeft = true;
@@ -484,12 +470,7 @@ void AMainCar::BrakeReleased()
 	bBraking = false;
 }
 
-//look
-void AMainCar::LookVertical(float value)
+void AMainCar::PauseGameState()
 {
-	AddControllerPitchInput(value* -1);
-}
-void AMainCar::LookHorizontal(float value)
-{
-	AddControllerYawInput(value);
+    UGameplayStatics::SetGamePaused(GetWorld(), true);
 }

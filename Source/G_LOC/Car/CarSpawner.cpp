@@ -13,7 +13,7 @@ ACarSpawner::ACarSpawner()
         if (LoadedGame)
         {
             SelectedCar = LoadedGame->SelectedCar;
-            UE_LOG(LogTemp, Warning, TEXT("Loaded Car Index: %d"), SelectedCar);
+            //UE_LOG(LogTemp, Warning, TEXT("Loaded Car Index: %d"), SelectedCar);
         }
     }
 }

@@ -11,7 +11,9 @@ void UMainMenuUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 
-	UGameplayStatics::PlaySound2D(this, MenuMusic);
+	UE_LOG(LogTemp, Warning, TEXT("MainMenuUI NativeConstruct"));
+
+	MainMenuMusicComp = UGameplayStatics::SpawnSound2D(this, MenuMusic);
 
 	ButtonToTargetMap.Add(StartButton, TeamSelectPanel);
 	ButtonToTargetMap.Add(SettingsButton, SettingsPanel);
@@ -30,6 +32,7 @@ void UMainMenuUI::NativeConstruct()
 	ButtonToTextMap.Add(SettingsButton, SettingsButton);
 	ButtonToTextMap.Add(Video, Video);
 	ButtonToTextMap.Add(Sound, Sound);
+	ButtonToTextMap.Add(SoundBackButton, SoundBackButton);
 	ButtonToTextMap.Add(SettingsBackButton, SettingsBackButton);
 	ButtonToTextMap.Add(CreditsButton, CreditsButton);
 	ButtonToTextMap.Add(CreditsBackButton, CreditsBackButton);
