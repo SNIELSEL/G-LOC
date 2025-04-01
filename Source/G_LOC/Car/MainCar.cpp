@@ -231,7 +231,7 @@ void AMainCar::UpdateThrottle(float DeltaTime)
     }
     else
     {
-        CameraFollowDistance = FMath::FInterpTo(CameraFollowDistance, 300.0f, DeltaTime, 2);
+        CameraFollowDistance = FMath::FInterpTo(CameraFollowDistance, 400.0f, DeltaTime, 2);
     }
 
     float CurrentXScaleL = FlameTrailMeshL->GetRelativeScale3D().X;
@@ -278,7 +278,7 @@ void AMainCar::Tick(float DeltaTime)
         FQuat BaseQuat = FRotationMatrix::MakeFromXZ(ForwardVector, Hit.ImpactNormal).ToQuat();
 
         float BlendFactor = bSteepSurface ? 1.0f : UpDot; 
-        float AdjustedRollAngle = SteeringInput * -10 * BlendFactor;
+        float AdjustedRollAngle = SteeringInput * 0 * BlendFactor;
         FQuat RollQuat = FQuat(ForwardVector, FMath::DegreesToRadians(AdjustedRollAngle));
 
         FQuat DesiredQuat = RollQuat * BaseQuat;
@@ -302,7 +302,7 @@ void AMainCar::Tick(float DeltaTime)
         }
     }
 
-    DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
+    //DrawDebugLine(GetWorld(), traceStart, traceEnd, FColor::Blue, false, 0.1f, 0, 1.0f);
 
     if (steerLeft && !steerRight)
     {

@@ -83,12 +83,12 @@ private:
 
 	//hover
 	float DesiredHoverHeight = 150;
-	float HoverInterpSpeed = 25;
+	float HoverInterpSpeed = 60;
 	float RotationInterpSpeed = 8;
 
 	//engine
-	float EngineForceCoefficient = 18000;
-	float MaxSpeedForClamp = 4000;
+	float EngineForceCoefficient = 37000;
+	float MaxSpeedForClamp = 7000;
 
 	float CurrentThrottle = 0;
 	float TargetThrottle = 0;
@@ -97,17 +97,18 @@ private:
 	//Boost
 	float MaxBoost;
 	float CurrentBoost;
-	float BoostForceCoefficient = 5000;
+	float BoostForceCoefficient = 9000;
 	float BoostDrainRate = 35;
 	float BoostRechargeRate = 7.5f;
 	bool bIsBoosting;
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 8;
-	float MaxSteeringAngularVelocity = 110;
+	float SteeringTorqueCoefficient = 19;
+	float MaxSteeringAngularVelocity = 160;
+
 	//brakes
-	float BrakingTorqueConstant = 180;
+	float BrakingTorqueConstant = 240;
 	float BrakeForceCoefficient = 0.5f;
 
 	//bools
@@ -119,8 +120,8 @@ private:
 
 	//camera
 	float CameraFollowDistance = 300;
-	float CameraHeight = 110;
-	float CameraInterpSpeedLocation = 200;
+	float CameraHeight = 105;
+	float CameraInterpSpeedLocation = 100;
 	float CameraInterpSpeedRotation = 4;
 	float CameraPitchOffset = -2;
 

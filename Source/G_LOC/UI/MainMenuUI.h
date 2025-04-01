@@ -16,7 +16,7 @@ class G_LOC_API UMainMenuUI : public UUserWidget
 {
 	GENERATED_BODY()
 
-protected:
+public:
 
 	void SetCar(UButton* ClickedButton);
 
@@ -25,10 +25,11 @@ protected:
 	UFUNCTION()
 	void OnAnyMenuButtonClicked();
 	UFUNCTION()
+	void OnAnyButtonHovered();
+	UFUNCTION()
+	void OnAnyButtonUnhovered();
+	UFUNCTION()
 	void OnAnyTeamSelectionButtonClicked();
-	
-	virtual void NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent) override;
-	virtual void NativeOnMouseLeave(const FPointerEvent& InMouseEvent) override;
 
 	//Switchers
 	UPROPERTY(meta = (BindWidget))
@@ -59,6 +60,12 @@ protected:
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* SettingsBackButton;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* Video;
+
+	UPROPERTY(meta = (BindWidget))
+	UButton* Sound;
 
 	UPROPERTY(meta = (BindWidget))
 	UButton* CreditsButton;
@@ -116,7 +123,19 @@ protected:
 	UTextBlock* CreditsText;
 
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* CreditsReturnText;
+
+	UPROPERTY(meta = (BindWidget))
 	UTextBlock* QuitText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* VideoText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* SoundText;
+
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* SettingsBackText;
 
 	//Image
 	UPROPERTY(meta = (BindWidget))
@@ -136,6 +155,7 @@ protected:
 	TMap<UButton*, UTextBlock*> ButtonToTextMap;
 	TMap<UButton*, UWidget*> ButtonToLoreMap;
 
+	UButton* CurrentlyHoveredButton = nullptr;
 	UButton* CurrentHoveredButton;
 	bool HoveringOnButton;
 };

@@ -23,7 +23,11 @@ void UMainMenuUI::NativeConstruct()
 	ButtonToTextMap.Add(SelectionConfirm, SelectionConfirmText);
 	ButtonToTextMap.Add(StartButton, StartText);
 	ButtonToTextMap.Add(SettingsButton, SettingsText);
+	ButtonToTextMap.Add(Video, VideoText);
+	ButtonToTextMap.Add(Sound, SoundText);
+	ButtonToTextMap.Add(SettingsBackButton, SettingsBackText);
 	ButtonToTextMap.Add(CreditsButton, CreditsText);
+	ButtonToTextMap.Add(CreditsBackButton, CreditsReturnText);
 	ButtonToTextMap.Add(QuitButton, QuitText);
 
 	ButtonToLoreMap.Add(Vanska1, vanskaLore);
@@ -51,7 +55,14 @@ void UMainMenuUI::NativeConstruct()
 		}
 	}
 
-	UE_LOG(LogTemp, Display, TEXT("LOGGED"));
+	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
+	{
+		if (Pair.Key)
+		{
+			Pair.Key->OnHovered.AddDynamic(this, &UMainMenuUI::OnAnyButtonHovered);
+			Pair.Key->OnUnhovered.AddDynamic(this, &UMainMenuUI::OnAnyButtonUnhovered);
+		}
+	}
 
 	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 	SaveGameInstance->SelectedCar = 0;
@@ -123,56 +134,27 @@ void UMainMenuUI::OnAnyTeamSelectionButtonClicked()
 }
 
 
-void UMainMenuUI::NativeOnMouseEnter(const FGeometry& InGeometry, const FPointerEvent& InMouseEvent)
+void UMainMenuUI::OnAnyButtonHovered()
 {
-	Super::NativeOnMouseEnter(InGeometry, InMouseEvent);
-
-	FVector2D MousePos = InMouseEvent.GetScreenSpacePosition();
-
-	for (const TPair<UButton*, UTextBlock*>& Pair : ButtonToTextMap)
+	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
 	{
-		if (!Pair.Key) continue;
-
-		FGeometry ButtonGeometry = Pair.Key->GetCachedGeometry();
-
-		if (ButtonGeometry.IsUnderLocation(MousePos) && !HoveringOnButton)
+		if (Pair.Key && Pair.Key->IsHovered())
 		{
-			HoveringOnButton = true;
-			CurrentHoveredButton = Pair.Key;
-			Pair.Value->SetColorAndOpacity(FSlateColor(FLinearColor::White));
+			CurrentlyHoveredButton = Pair.Key;
+			Pair.Key->SetColorAndOpacity(FLinearColor(0.680757f, 0.680757f, 0.680757f, 1.0));
 			break;
 		}
 	}
 }
 
-void UMainMenuUI::NativeOnMouseLeave(const FPointerEvent& InMouseEvent)
+void UMainMenuUI::OnAnyButtonUnhovered()
 {
-	Super::NativeOnMouseLeave(InMouseEvent);
-
-	FVector2D MousePos = InMouseEvent.GetScreenSpacePosition();
-
-	for (const TPair<UButton*, UTextBlock*>& Pair : ButtonToTextMap)
+	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
 	{
-		if (!Pair.Key) continue;
-
-		FGeometry ButtonGeometry = Pair.Key->GetCachedGeometry();
-
-		if (!ButtonGeometry.IsUnderLocation(MousePos) && HoveringOnButton && Pair.Key == CurrentHoveredButton)
+		if (Pair.Key && Pair.Key == CurrentlyHoveredButton)
 		{
-			HoveringOnButton = false;
-			Pair.Value->SetColorAndOpacity(FSlateColor(FLinearColor(0.125f, 0.341f, 0.671f, 1.0f)));
-			break;
-		}
-	}
-
-	//failsafe for when not changin color because of Switching UiPanels
-	for (const TPair<UButton*, UTextBlock*>& Pair : ButtonToTextMap)
-	{
-		if (!Pair.Key) continue;
-
-		if (Pair.Value->GetColorAndOpacity() == FSlateColor(FLinearColor::White))
-		{
-			Pair.Value->SetColorAndOpacity(FSlateColor(FLinearColor(0.125f, 0.341f, 0.671f, 1.0f)));
+			CurrentlyHoveredButton = nullptr;
+			Pair.Key->SetColorAndOpacity(FLinearColor(0.125f, 0.341f, 0.671f, 1.0f));
 			break;
 		}
 	}
