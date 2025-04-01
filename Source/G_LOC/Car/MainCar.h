@@ -104,8 +104,8 @@ private:
 	bool bIsRecharging;
 
 	//rotation
-	float SteeringTorqueCoefficient = 19;
-	float MaxSteeringAngularVelocity = 160;
+	float SteeringTorqueCoefficient = 12;
+	float MaxSteeringAngularVelocity = 120;
 
 	//brakes
 	float BrakingTorqueConstant = 240;
