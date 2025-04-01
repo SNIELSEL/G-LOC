@@ -1,5 +1,6 @@
 #include "MainMenuUI.h"
 #include "Components/Button.h"
+#include "Components/Slider.h"
 #include "Components/WidgetSwitcher.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "GameFramework/SaveGame.h"
@@ -10,6 +11,8 @@ void UMainMenuUI::NativeConstruct()
 {
 	Super::NativeConstruct();
 
+	UGameplayStatics::PlaySound2D(this, MenuMusic);
+
 	ButtonToTargetMap.Add(StartButton, TeamSelectPanel);
 	ButtonToTargetMap.Add(SettingsButton, SettingsPanel);
 	ButtonToTargetMap.Add(CreditsButton, CreditsPanel);
@@ -18,17 +21,19 @@ void UMainMenuUI::NativeConstruct()
 	ButtonToTargetMap.Add(QuitButton, MainPanel);
 	ButtonToTargetMap.Add(SelectionReturn, MainPanel);
 	ButtonToTargetMap.Add(SelectionConfirm, TeamSelectPanel);
+	ButtonToTargetMap.Add(Sound, SoundPanel);
+	ButtonToTargetMap.Add(SoundBackButton, SettingsPanel);
 
-	ButtonToTextMap.Add(SelectionReturn, SelectionReturnText);
-	ButtonToTextMap.Add(SelectionConfirm, SelectionConfirmText);
-	ButtonToTextMap.Add(StartButton, StartText);
-	ButtonToTextMap.Add(SettingsButton, SettingsText);
-	ButtonToTextMap.Add(Video, VideoText);
-	ButtonToTextMap.Add(Sound, SoundText);
-	ButtonToTextMap.Add(SettingsBackButton, SettingsBackText);
-	ButtonToTextMap.Add(CreditsButton, CreditsText);
-	ButtonToTextMap.Add(CreditsBackButton, CreditsReturnText);
-	ButtonToTextMap.Add(QuitButton, QuitText);
+	ButtonToTextMap.Add(SelectionReturn, SelectionReturn);
+	ButtonToTextMap.Add(SelectionConfirm, SelectionConfirm);
+	ButtonToTextMap.Add(StartButton, StartButton);
+	ButtonToTextMap.Add(SettingsButton, SettingsButton);
+	ButtonToTextMap.Add(Video, Video);
+	ButtonToTextMap.Add(Sound, Sound);
+	ButtonToTextMap.Add(SettingsBackButton, SettingsBackButton);
+	ButtonToTextMap.Add(CreditsButton, CreditsButton);
+	ButtonToTextMap.Add(CreditsBackButton, CreditsBackButton);
+	ButtonToTextMap.Add(QuitButton, QuitButton);
 
 	ButtonToLoreMap.Add(Vanska1, vanskaLore);
 	ButtonToLoreMap.Add(Vanska2, vanskaLore);
@@ -55,7 +60,7 @@ void UMainMenuUI::NativeConstruct()
 		}
 	}
 
-	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
+	for (const TPair<UButton*, UButton*>& Pair : ButtonToTextMap)
 	{
 		if (Pair.Key)
 		{
@@ -64,10 +69,108 @@ void UMainMenuUI::NativeConstruct()
 		}
 	}
 
+	if (UGameplayStatics::DoesSaveGameExist(TEXT("VolumeSlot"), 0))
+	{
+		UMySaveGame* LoadedGame = Cast<UMySaveGame>(UGameplayStatics::LoadGameFromSlot(TEXT("VolumeSlot"), 0));
+		if (LoadedGame)
+		{
+			float Master = LoadedGame->MasterVolume;
+			float Music = LoadedGame->MusicVolume;
+			float SFX = LoadedGame->SFXVolume;
+
+			if (MasterSlider) MasterSlider->SetValue(Master);
+			if (MusicSlider)  MusicSlider->SetValue(Music);
+			if (SFXSlider)    SFXSlider->SetValue(SFX);
+
+			OnMasterVolumeChanged(Master);
+			OnMusicVolumeChanged(Music);
+			OnSFXVolumeChanged(SFX);
+		}
+	}
+	else
+	{
+		SaveVolumeSettings(1, 1, 1);
+	}
+
+	if (MasterSlider)
+	{
+		MasterSlider->OnValueChanged.AddDynamic(this, &UMainMenuUI::OnMasterVolumeChanged);
+	}
+	if (MusicSlider)
+	{
+		MusicSlider->OnValueChanged.AddDynamic(this, &UMainMenuUI::OnMusicVolumeChanged);
+	}
+	if (SFXSlider)
+	{
+		SFXSlider->OnValueChanged.AddDynamic(this, &UMainMenuUI::OnSFXVolumeChanged);
+	}
+
 	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
 	SaveGameInstance->SelectedCar = 0;
 	UGameplayStatics::SaveGameToSlot(SaveGameInstance, TEXT("Slot"), 0);
 }
+void UMainMenuUI::OnMasterVolumeChanged(float Value)
+{
+	if (MainSoundMix && MasterClass)
+	{
+		UGameplayStatics::ClearSoundMixClassOverride(this, MainSoundMix, MusicClass);
+		UGameplayStatics::SetSoundMixClassOverride(this, MainSoundMix, MasterClass, Value, 1.0f, 0.0f, true);
+		UGameplayStatics::PushSoundMixModifier(this, MainSoundMix);
+	}
+
+	if (MasterProgress)
+	{
+		MasterProgress->SetPercent(Value);
+		MasterVolume = Value;
+		SaveVolumeSettings(MasterVolume, MusicVolume, SFXVolume);
+	}
+}
+
+void UMainMenuUI::OnMusicVolumeChanged(float Value)
+{
+	if (MainSoundMix && MusicClass)
+	{
+		UGameplayStatics::ClearSoundMixClassOverride(this, MainSoundMix, MusicClass);
+		UGameplayStatics::SetSoundMixClassOverride(this, MainSoundMix, MusicClass, Value, 1.0f, 0.00f, true);
+		UGameplayStatics::PushSoundMixModifier(this, MainSoundMix);
+	}
+
+	if (MusicProgress)
+	{
+		MusicProgress->SetPercent(Value);
+		MusicVolume = Value;
+		SaveVolumeSettings(MasterVolume, MusicVolume, SFXVolume);
+	}
+}
+
+void UMainMenuUI::OnSFXVolumeChanged(float Value)
+{
+	if (MainSoundMix && SFXClass)
+	{
+		UGameplayStatics::ClearSoundMixClassOverride(this, MainSoundMix, SFXClass);
+		UGameplayStatics::SetSoundMixClassOverride(this, MainSoundMix, SFXClass, Value, 1.0f, 0.00f, true);
+		UGameplayStatics::PushSoundMixModifier(this, MainSoundMix);
+	}
+
+	if (SFXProgress)
+	{
+		SFXProgress->SetPercent(Value);
+		SFXVolume = Value;
+		SaveVolumeSettings(MasterVolume, MusicVolume, SFXVolume);
+	}
+}
+
+void UMainMenuUI::SaveVolumeSettings(float Master, float Music, float SFX)
+{
+	UMySaveGame* SaveGameInstance = Cast<UMySaveGame>(UGameplayStatics::CreateSaveGameObject(UMySaveGame::StaticClass()));
+
+	SaveGameInstance->MasterVolume = Master;
+	SaveGameInstance->MusicVolume = Music;
+	SaveGameInstance->SFXVolume = SFX;
+
+	UGameplayStatics::SaveGameToSlot(SaveGameInstance, TEXT("VolumeSlot"), 0);
+}
+
 void UMainMenuUI::OnAnyMenuButtonClicked()
 {
 	UButton* Clicked = nullptr;
@@ -136,7 +239,7 @@ void UMainMenuUI::OnAnyTeamSelectionButtonClicked()
 
 void UMainMenuUI::OnAnyButtonHovered()
 {
-	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
+	for (const TPair<UButton*, UButton*>& Pair : ButtonToTextMap)
 	{
 		if (Pair.Key && Pair.Key->IsHovered())
 		{
@@ -149,7 +252,7 @@ void UMainMenuUI::OnAnyButtonHovered()
 
 void UMainMenuUI::OnAnyButtonUnhovered()
 {
-	for (const TPair<UButton*, UWidget*>& Pair : ButtonToTextMap)
+	for (const TPair<UButton*, UButton*>& Pair : ButtonToTextMap)
 	{
 		if (Pair.Key && Pair.Key == CurrentlyHoveredButton)
 		{

@@ -3,6 +3,9 @@
 #include "CoreMinimal.h"
 #include "Components/Image.h"
 #include "Components/TextBlock.h"
+#include "Sound/SoundMix.h"
+#include "Sound/SoundClass.h"
+#include "Components/ProgressBar.h"
 #include "GameFramework/SaveGame.h"
 #include "Blueprint/UserWidget.h"
 #include "MainMenuUI.generated.h"
@@ -21,7 +24,7 @@ public:
 	void SetCar(UButton* ClickedButton);
 
 	virtual void NativeConstruct() override;
-
+	
 	UFUNCTION()
 	void OnAnyMenuButtonClicked();
 	UFUNCTION()
@@ -30,7 +33,34 @@ public:
 	void OnAnyButtonUnhovered();
 	UFUNCTION()
 	void OnAnyTeamSelectionButtonClicked();
+	UFUNCTION()
+	void OnMasterVolumeChanged(float value);
+	UFUNCTION()
+	void OnMusicVolumeChanged(float value);
+	UFUNCTION()
+	void OnSFXVolumeChanged(float value);
 
+	void SaveVolumeSettings(float Master, float Music, float SFX);
+
+	//Audio
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundMix* MainSoundMix;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundClass* MasterClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundClass* MusicClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundClass* SFXClass;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Audio")
+	USoundBase* MenuMusic;
+
+	float MasterVolume;
+	float MusicVolume;
+	float SFXVolume;
 	//Switchers
 	UPROPERTY(meta = (BindWidget))
 	UWidgetSwitcher* MenuSwitcher;
@@ -50,6 +80,9 @@ public:
 
 	UPROPERTY(meta = (BindWidget))
 	UWidget* TeamSelectPanel;
+
+	UPROPERTY(meta = (BindWidget))
+	UWidget* SoundPanel;
 
 	//Buttons
 	UPROPERTY(meta = (BindWidget))
@@ -106,36 +139,8 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UButton* Cannova2;
 
-	//Text
 	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SelectionReturnText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SelectionConfirmText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* StartText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SettingsText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* CreditsText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* CreditsReturnText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* QuitText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* VideoText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SoundText;
-
-	UPROPERTY(meta = (BindWidget))
-	UTextBlock* SettingsBackText;
+	UButton* SoundBackButton;
 
 	//Image
 	UPROPERTY(meta = (BindWidget))
@@ -150,9 +155,28 @@ public:
 	UPROPERTY(meta = (BindWidget))
 	UImage* CannovaLore;
 
+	//audio slider binding
+	UPROPERTY(meta = (BindWidget))
+	class USlider* MasterSlider;
+
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* MasterProgress;
+
+	UPROPERTY(meta = (BindWidget))
+	class USlider* MusicSlider;
+	
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* MusicProgress;
+
+	UPROPERTY(meta = (BindWidget))
+	class USlider* SFXSlider;
+
+	UPROPERTY(meta = (BindWidget))
+	UProgressBar* SFXProgress;
+
 	//Button Ui mapping that in the code links the button to the UI it enables
 	TMap<UButton*, UWidget*> ButtonToTargetMap;
-	TMap<UButton*, UTextBlock*> ButtonToTextMap;
+	TMap<UButton*, UButton*> ButtonToTextMap;
 	TMap<UButton*, UWidget*> ButtonToLoreMap;
 
 	UButton* CurrentlyHoveredButton = nullptr;
